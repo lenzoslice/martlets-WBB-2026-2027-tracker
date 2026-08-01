@@ -100,10 +100,10 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
 <div id="lock" class="hidden">
   <p class="eyebrow">McGill Martlets W-Basketball</p>
   <h1>Coverage Tracker</h1>
-  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter your personal code — Lens gives you yours.
-  It identifies you, so don't share it.</p>
-  <input id="pass" type="text" placeholder="Your code (e.g. A1B2C3)" autocomplete="current-password"
-         autocapitalize="characters" spellcheck="false" style="text-transform:uppercase; letter-spacing:.12em">
+  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter your PIN — Lens gives you yours.
+  It signs your name to every change, so keep it to yourself.</p>
+  <input id="pass" type="password" placeholder="Your PIN" autocomplete="current-password"
+         autocapitalize="characters" spellcheck="false" style="text-transform:uppercase; letter-spacing:.2em">
   <button class="primary" id="enter">Enter</button>
   <p class="err" id="lockerr"></p>
 </div>
@@ -311,7 +311,7 @@ function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
     '<li>Tap your own name on an event to sign up; tap again to remove yourself. Other people’s names are locked — only Lens can move those.</li>' +
-    '<li>Your code is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
+    '<li>Your PIN is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
     '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
     '<li>Minimums: practice 1 · game 2 · medicals = everyone (5).</li>' +
     '<li>Remove yourself as early as possible if you can’t make it — the audit log shows every change.</li>' +
@@ -347,7 +347,7 @@ document.addEventListener("click", function(e){
     post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on})
       .then(function(r){
         if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
-        else if (r.error === "bad_code") { lock("Your code no longer works — ask Lens."); }
+        else if (r.error === "bad_code") { lock("Your PIN no longer works — ask Lens."); }
         else if (r.error === "not_allowed") { t.disabled = false; alert("Only Lens can change someone else's name."); }
         else { t.disabled = false; }
       })
@@ -366,7 +366,7 @@ function lock(msg){
 }
 $("enter").onclick = function(){
   var v = $("pass").value.trim().toUpperCase();
-  if (!v) { $("lockerr").textContent = "Enter your code."; return; }
+  if (!v) { $("lockerr").textContent = "Enter your PIN."; return; }
   localStorage.setItem("mt_code", v);
   $("lockerr").textContent = "Checking…";
   boot();
@@ -376,7 +376,9 @@ function boot(){
   post({action:"state"}).then(function(r){
     if (!r.ok) {
       localStorage.removeItem("mt_code");
-      lock(r.error==="bad_code" ? "That code isn't recognised." : ("Error: " + r.error));
+      lock(r.error === "bad_code" ? "That PIN isn't recognised."
+         : r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes."
+         : ("Error: " + r.error));
       return;
     }
     S = r.state; ME = r.me;
