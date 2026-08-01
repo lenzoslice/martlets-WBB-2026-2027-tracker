@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Martlets Coverage 2026-27</title>
+<style>
+:root {
+  --red:#ED1B2F; --grn:#8BA04E; --org:#AA4B31;
+  --bg:#F7F6F5; --card:#FFFFFF; --ink:#1A1A1A; --sub:#5D6770; --line:#DDDBD8;
+  --grn-bg:#F0F3E6; --org-bg:#F6EAE5; --red-bg:#FDE8EA; --gry-bg:#EDECEA;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg:#16171A; --card:#1F2126; --ink:#EDEDEC; --sub:#9BA3AA; --line:#33363C;
+  --grn-bg:#252A1C; --org-bg:#2C211C; --red-bg:#321B1F; --gry-bg:#24262B; --red:#F4425A;
+} }
+* { box-sizing:border-box; }
+body { font-family:Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink);
+  margin:0; line-height:1.45; }
+.wrap { max-width:780px; margin:0 auto; padding:0 14px 70px; }
+header { border-top:6px solid var(--red); padding:18px 0 10px; }
+.eyebrow { text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--red);
+  font-weight:bold; margin:0 0 4px; }
+h1 { font-size:clamp(20px,4.5vw,28px); margin:0 0 2px; }
+.idline { font-size:13px; color:var(--sub); margin:2px 0 0; }
+.idline button { border:none; background:none; color:var(--red); font-weight:bold;
+  cursor:pointer; font-size:13px; padding:0; }
+.tabs { display:flex; gap:4px; margin:14px 0 16px; border-bottom:2px solid var(--ink);
+  overflow-x:auto; }
+.tab { border:none; background:none; font:inherit; font-weight:bold; font-size:14px;
+  padding:8px 14px; cursor:pointer; color:var(--sub); white-space:nowrap; }
+.tab.on { color:var(--ink); border-bottom:4px solid var(--red); margin-bottom:-2px; }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.stat { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
+.stat b { display:block; font-size:24px; font-variant-numeric:tabular-nums; }
+.stat span { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.07em; }
+.stat.red b { color:var(--red); } .stat.org b { color:var(--org); } .stat.grn b { color:var(--grn); }
+.warnbar { background:var(--red); color:#fff; border-radius:6px; padding:11px 14px;
+  font-weight:bold; margin:12px 0; font-size:14px; }
+h2 { font-size:16px; margin:22px 0 8px; }
+.mh { display:flex; justify-content:space-between; align-items:baseline;
+  border-bottom:2px solid var(--ink); padding:18px 0 5px; margin-bottom:8px; }
+.mh h2 { margin:0; }
+.mstat { font-size:12px; color:var(--sub); }
+.row { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line);
+  border-radius:6px; padding:9px 12px; margin:6px 0; }
+.row.st-uncovered { border-left-color:var(--red); background:var(--red-bg); }
+.row.st-partial { border-left-color:var(--org); background:var(--org-bg); }
+.row.st-covered { border-left-color:var(--grn); background:var(--grn-bg); }
+.row.ctx { background:var(--gry-bg); color:var(--sub); }
+.rtop { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+.dnum { font-weight:bold; font-size:14px; min-width:86px; }
+.rtime { font-size:12px; color:var(--sub); }
+.rname { font-size:14px; flex:1; min-width:150px; }
+.game .rname { font-weight:bold; }
+.badge { font-size:10px; font-weight:bold; text-transform:uppercase; letter-spacing:.05em;
+  padding:3px 8px; border-radius:99px; color:#fff; white-space:nowrap; }
+.b-red { background:var(--red); } .b-org { background:var(--org); } .b-grn { background:var(--grn); }
+.b-gry { background:transparent; color:var(--sub); border:1px solid var(--line); }
+.cnt { font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
+.chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.chip { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
+  border-radius:99px; padding:5px 12px; font:inherit; font-size:13px; cursor:pointer; }
+.chip.on { background:var(--grn); border-color:var(--grn); color:#fff; font-weight:bold; }
+.chip.locked { cursor:default; opacity:.55; }
+.chip.me { border-color:var(--ink); }
+.chip:disabled { cursor:default; }
+.note { font-size:12px; color:var(--sub); margin-top:3px; }
+.filters { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 10px; }
+.fbtn { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
+  border-radius:99px; padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
+.fbtn.on { background:var(--ink); border-color:var(--ink); color:var(--bg); font-weight:bold; }
+.audit-item { border-bottom:1px solid var(--line); padding:8px 2px; font-size:13px; }
+.audit-item.bad { background:var(--red-bg); border-left:4px solid var(--red); padding-left:8px; }
+.audit-when { color:var(--sub); font-size:11px; }
+table { border-collapse:collapse; width:100%; background:var(--card); }
+th, td { border:1px solid var(--line); padding:6px 10px; font-size:13px; text-align:left; }
+th { background:var(--gry-bg); text-transform:uppercase; font-size:11px; letter-spacing:.05em; }
+td.n { text-align:center; font-variant-numeric:tabular-nums; }
+.help p { max-width:65ch; font-size:14px; }
+.help li { font-size:14px; margin:4px 0; }
+.stamp { color:var(--sub); font-size:12px; margin-top:26px; border-top:1px solid var(--line);
+  padding-top:10px; }
+#lock { max-width:340px; margin:12vh auto; background:var(--card); border:1px solid var(--line);
+  border-top:6px solid var(--red); border-radius:8px; padding:24px; }
+#lock h1 { font-size:20px; }
+#lock input { width:100%; font:inherit; font-size:16px; padding:10px; margin:10px 0;
+  border:1.5px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
+#lock .chips { margin:4px 0 14px; }
+.primary { background:var(--red); color:#fff; border:none; border-radius:6px; font:inherit;
+  font-weight:bold; padding:10px 18px; cursor:pointer; width:100%; }
+.err { color:var(--red); font-size:13px; min-height:18px; margin:4px 0 0; }
+.hidden { display:none; }
+.syncline { font-size:11px; color:var(--sub); text-align:right; margin-top:6px; }
+@media (max-width:560px) { .stats { grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div id="lock" class="hidden">
+  <p class="eyebrow">McGill Martlets W-Basketball</p>
+  <h1>Coverage Tracker</h1>
+  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter the team passcode.</p>
+  <input id="pass" type="password" placeholder="Team passcode" autocomplete="current-password">
+  <div class="chips hidden" id="whochips"></div>
+  <button class="primary" id="enter">Enter</button>
+  <p class="err" id="lockerr"></p>
+</div>
+
+<div class="wrap hidden" id="app">
+<header>
+  <p class="eyebrow">McGill Martlets Women's Basketball</p>
+  <h1>Coverage Tracker — 2026-27</h1>
+  <p class="idline">You are <b id="whoami"></b> · <button id="switch">switch</button></p>
+</header>
+<div class="tabs">
+  <button class="tab on" data-t="dash">Dashboard</button>
+  <button class="tab" data-t="cov">Coverage</button>
+  <button class="tab" data-t="audit">Audit log</button>
+  <button class="tab" data-t="help">Help</button>
+</div>
+<div id="t-dash"></div>
+<div id="t-cov" class="hidden"></div>
+<div id="t-audit" class="hidden"></div>
+<div id="t-help" class="hidden help"></div>
+<p class="syncline" id="sync"></p>
+</div>
+
+<script>
+"use strict";
+var API = "https://fdybcqdavyezdvxehlee.supabase.co/functions/v1/tracker/api";
+var S = null;               // server state
+var FILTER = "all";
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
+function creds(){ return { passcode: localStorage.getItem("mt_pass")||"", me: localStorage.getItem("mt_me")||"" }; }
+
+function post(body){
+  body.passcode = creds().passcode;
+  return fetch(API, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)})
+    .then(function(r){ return r.json(); });
+}
+
+/* ---------- derived ---------- */
+function counts(ev){
+  var n = 0;
+  S.signups.forEach(function(s){ if (s.event_id === ev.id) n++; });
+  return n;
+}
+function whoOn(ev){
+  var names = [];
+  S.signups.forEach(function(s){
+    if (s.event_id === ev.id) {
+      var p = S.people.find(function(x){ return x.id === s.person_id; });
+      if (p) names.push(p.name);
+    }
+  });
+  return names;
+}
+function status(ev){
+  if (ev.min_needed === 0) return "ctx";
+  var n = counts(ev);
+  if (n === 0) return "uncovered";
+  return n >= ev.min_needed ? "covered" : "partial";
+}
+function fmtDate(d){
+  var dt = new Date(d + "T12:00:00");
+  return dt.toLocaleDateString("en-CA", {weekday:"short", month:"short", day:"numeric"});
+}
+function monthKey(d){ return d.slice(0,7); }
+function monthLabel(d){
+  return new Date(d + "T12:00:00").toLocaleDateString("en-CA", {month:"long", year:"numeric"});
+}
+
+/* ---------- rendering ---------- */
+function badge(st){
+  if (st === "uncovered") return '<span class="badge b-red">Uncovered</span>';
+  if (st === "partial") return '<span class="badge b-org">Needs more</span>';
+  if (st === "covered") return '<span class="badge b-grn">Covered</span>';
+  return '<span class="badge b-gry">No coverage needed</span>';
+}
+function eventRow(ev, interactive){
+  var st = status(ev);
+  var isGame = ev.etype === "Game" || ev.etype === "Tournament" || ev.etype === "Medicals";
+  var h = '<div class="row st-' + st + (st==="ctx" ? " ctx" : "") + (isGame ? " game" : "") + '">';
+  h += '<div class="rtop"><span class="dnum">' + esc(fmtDate(ev.date)) + '</span>';
+  h += '<span class="rtime">' + esc(ev.time_label) + '</span>';
+  h += '<span class="rname">' + esc(ev.detail) + (ev.home_away ? " · " + esc(ev.home_away) : "") + '</span>';
+  h += badge(st);
+  if (st !== "ctx") h += '<span class="cnt">' + counts(ev) + "/" + ev.min_needed + '</span>';
+  h += '</div>';
+  if (ev.notes) h += '<div class="note">' + esc(ev.notes) + '</div>';
+  if (st !== "ctx" && interactive) {
+    h += '<div class="chips">';
+    var me = creds().me;
+    S.people.forEach(function(p){
+      var on = S.signups.some(function(s){ return s.event_id===ev.id && s.person_id===p.id; });
+      var canTouch = (me === "Lens") || (p.name === me);
+      var cls = "chip" + (on ? " on" : "") + (p.name === me ? " me" : "") + (canTouch ? "" : " locked");
+      h += '<button class="' + cls + '" ' + (canTouch ? "" : "disabled ") +
+           'data-ev="' + ev.id + '" data-p="' + p.id + '" data-on="' + (on?1:0) + '">' +
+           esc(p.name) + (p.standby ? " *" : "") + '</button>';
+    });
+    h += '</div>';
+  } else if (st !== "ctx") {
+    var names = whoOn(ev);
+    h += '<div class="note">✓ ' + (names.length ? esc(names.join(", ")) : "—") + '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderDash(){
+  var need = S.events.filter(function(e){ return e.min_needed > 0; });
+  var unc = need.filter(function(e){ return status(e)==="uncovered"; });
+  var par = need.filter(function(e){ return status(e)==="partial"; });
+  var cov = need.filter(function(e){ return status(e)==="covered"; });
+  var today = new Date().toISOString().slice(0,10);
+  var wk = new Date(Date.now() + 7*864e5).toISOString().slice(0,10);
+  var soon = need.filter(function(e){ return e.date >= today && e.date <= wk; });
+  var soonBad = soon.filter(function(e){ return status(e)!=="covered"; });
+
+  var h = '<div class="stats">' +
+    '<div class="stat"><b>' + need.length + '</b><span>Events</span></div>' +
+    '<div class="stat red"><b>' + unc.length + '</b><span>Uncovered</span></div>' +
+    '<div class="stat org"><b>' + par.length + '</b><span>Needs more</span></div>' +
+    '<div class="stat grn"><b>' + cov.length + '</b><span>Covered</span></div></div>';
+
+  if (soonBad.length) {
+    h += '<div class="warnbar">⚠ Next 7 days: ' + soonBad.length +
+         ' event' + (soonBad.length>1?"s":"") + ' below minimum — tap Coverage to sign up.</div>';
+  }
+  var lost = S.audit.filter(function(a){ return a.action==="removed" && a.covered_after===0; }).slice(0,3);
+  if (lost.length) {
+    h += '<h2>Recently lost coverage</h2>';
+    lost.forEach(function(a){
+      h += '<div class="audit-item bad"><b>' + esc(a.person) + '</b> removed — <b>' +
+           esc(a.event_label) + '</b> now has NOBODY <span class="audit-when">(' + when(a.at) + ')</span></div>';
+    });
+  }
+  if (soon.length) {
+    h += '<h2>Next 7 days</h2>';
+    soon.forEach(function(e){ h += eventRow(e, true); });
+  }
+  h += '<h2>Workload</h2><table><tr><th>Name</th><th>Total ✓</th><th>Games ✓</th></tr>';
+  S.people.forEach(function(p){
+    var tot=0, g=0;
+    S.signups.forEach(function(s){
+      if (s.person_id!==p.id) return;
+      tot++;
+      var ev = S.events.find(function(e){ return e.id===s.event_id; });
+      if (ev && (ev.etype==="Game"||ev.etype==="Tournament")) g++;
+    });
+    h += '<tr><td>' + esc(p.name) + (p.standby?" (standby)":"") + '</td><td class="n">' + tot + '</td><td class="n">' + g + '</td></tr>';
+  });
+  h += '</table>';
+  $("t-dash").innerHTML = h;
+}
+
+function renderCov(){
+  var h = '<div class="filters">' +
+    ['all','games','uncovered','mine'].map(function(f){
+      var lbl = {all:"All", games:"Games only", uncovered:"Gaps only", mine:"My events"}[f];
+      return '<button class="fbtn' + (FILTER===f?" on":"") + '" data-f="' + f + '">' + lbl + '</button>';
+    }).join("") + '</div>';
+  var me = creds().me;
+  var meId = (S.people.find(function(p){ return p.name===me; })||{}).id;
+  var evs = S.events.filter(function(e){
+    if (FILTER==="games") return e.etype==="Game"||e.etype==="Tournament";
+    if (FILTER==="uncovered") return e.min_needed>0 && status(e)!=="covered";
+    if (FILTER==="mine") return S.signups.some(function(s){ return s.event_id===e.id && s.person_id===meId; });
+    return true;
+  });
+  var lastM = "";
+  evs.forEach(function(e){
+    var mk = monthKey(e.date);
+    if (mk !== lastM) {
+      lastM = mk;
+      var inMonth = evs.filter(function(x){ return monthKey(x.date)===mk && x.min_needed>0; });
+      var bad = inMonth.filter(function(x){ return status(x)!=="covered"; });
+      h += '<div class="mh"><h2>' + esc(monthLabel(e.date)) + '</h2><span class="mstat">' +
+           inMonth.length + ' events · ' + bad.length + ' below min</span></div>';
+    }
+    h += eventRow(e, true);
+  });
+  if (!evs.length) h += '<p class="note">Nothing matches this filter.</p>';
+  $("t-cov").innerHTML = h;
+}
+
+function when(iso){
+  return new Date(iso).toLocaleString("en-CA",
+    {timeZone:"America/Toronto", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+}
+function renderAudit(){
+  var h = '<p class="note">Every add/remove, newest first. Red = the change left an event below its minimum.</p>';
+  if (!S.audit.length) h += '<p class="note">No changes yet.</p>';
+  S.audit.forEach(function(a){
+    var bad = a.action==="removed" && a.covered_after < a.min_needed;
+    h += '<div class="audit-item' + (bad?" bad":"") + '">' +
+      '<b>' + esc(a.person) + '</b> ' + (a.action==="added"?"signed up for":"removed from") +
+      ' <b>' + esc(a.event_label) + '</b> → now ' + a.covered_after + '/' + a.min_needed +
+      (a.actor && a.actor !== a.person ? ' <span class="audit-when">(by ' + esc(a.actor) + ')</span>' : '') +
+      ' <span class="audit-when">' + when(a.at) + '</span></div>';
+  });
+  $("t-audit").innerHTML = h;
+}
+
+function renderHelp(){
+  $("t-help").innerHTML =
+    '<h2>How it works</h2><ul>' +
+    '<li>Tap your name on an event to sign up; tap again to remove yourself. Only Lens can change other people’s names.</li>' +
+    '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
+    '<li>Minimums: practice 1 · game 2 · medicals = everyone (5).</li>' +
+    '<li>Remove yourself as early as possible if you can’t make it — the audit log shows every change.</li>' +
+    '<li>Judd * is standby until confirmed.</li>' +
+    '<li>⚠️ marks unverified facts (opponents were read from calendar logos; game times TBD). Do not plan around ⚠️ items until confirmed.</li>' +
+    '</ul>' +
+    '<h2>Schedule changes</h2><p>Only Lens edits the schedule itself (via Mary). If a practice moves or a game is added, it appears here — check the Dashboard weekly.</p>' +
+    '<p class="stamp">Schedule source: August 2026 + Fall 2026 team calendars provided by Lens, transcribed 2026-08-01. ' +
+    'Winter 2027 will be added when published. This page updates live; it refreshes automatically.</p>';
+}
+
+function renderAll(){
+  if (!S) return;
+  renderDash(); renderCov(); renderAudit(); renderHelp();
+  $("whoami").textContent = creds().me;
+  $("sync").textContent = "Updated " + when(S.now);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", function(e){
+  var t = e.target;
+  if (t.classList && t.classList.contains("tab")) {
+    document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("on"); });
+    t.classList.add("on");
+    ["dash","cov","audit","help"].forEach(function(k){
+      $("t-"+k).classList.toggle("hidden", k !== t.dataset.t);
+    });
+  }
+  if (t.classList && t.classList.contains("fbtn")) { FILTER = t.dataset.f; renderCov(); }
+  if (t.classList && t.classList.contains("chip") && t.dataset.ev && !t.disabled) {
+    var on = t.dataset.on === "1";
+    t.disabled = true;
+    post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on, actor:creds().me})
+      .then(function(r){
+        if (r.ok) { S = r.state; renderAll(); }
+        else if (r.error === "bad_passcode") { lock(); }
+      })
+      .catch(function(){ t.disabled = false; });
+  }
+  if (t.id === "switch") { localStorage.removeItem("mt_me"); showApp(); }
+});
+
+/* ---------- lock screen / boot ---------- */
+function lock(msg){
+  $("app").classList.add("hidden");
+  $("lock").classList.remove("hidden");
+  $("whochips").classList.add("hidden");
+  $("pass").classList.remove("hidden");
+  $("enter").classList.remove("hidden");
+  $("lockmsg").textContent = "Enter the team passcode.";
+  $("lockerr").textContent = msg || "";
+  $("pass").value = creds().passcode;
+}
+function pickWho(){
+  // passcode is valid, S is loaded; names come from the server only
+  $("app").classList.add("hidden");
+  $("lock").classList.remove("hidden");
+  $("pass").classList.add("hidden");
+  $("enter").classList.add("hidden");
+  $("lockmsg").textContent = "Tap your name:";
+  $("lockerr").textContent = "";
+  var h = "";
+  S.people.forEach(function(p){
+    h += '<button class="chip" data-who="' + esc(p.name) + '">' + esc(p.name) + (p.standby?" *":"") + '</button>';
+  });
+  var box = $("whochips");
+  box.innerHTML = h;
+  box.classList.remove("hidden");
+  box.querySelectorAll(".chip").forEach(function(c){
+    c.onclick = function(){
+      localStorage.setItem("mt_me", c.dataset.who);
+      showApp();
+    };
+  });
+}
+function showApp(){
+  if (!creds().me) { pickWho(); return; }
+  $("lock").classList.add("hidden");
+  $("app").classList.remove("hidden");
+  renderAll();
+}
+$("enter").onclick = function(){
+  localStorage.setItem("mt_pass", $("pass").value.trim());
+  $("lockerr").textContent = "";
+  boot();
+};
+$("pass").addEventListener("keydown", function(e){ if (e.key === "Enter") $("enter").click(); });
+function boot(){
+  post({action:"state"}).then(function(r){
+    if (!r.ok) { lock(r.error==="bad_passcode" ? "Wrong passcode." : ("Error: " + r.error)); return; }
+    S = r.state;
+    showApp();
+  }).catch(function(){ lock("Network error — try again."); });
+}
+setInterval(function(){
+  if (!S || document.hidden) return;
+  post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+}, 15000);
+document.addEventListener("visibilitychange", function(){
+  if (!document.hidden && S) post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+});
+if (creds().passcode) boot(); else lock();
+</script>
+</body>
+</html>
