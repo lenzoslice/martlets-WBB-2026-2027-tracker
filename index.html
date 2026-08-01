@@ -100,9 +100,10 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
 <div id="lock" class="hidden">
   <p class="eyebrow">McGill Martlets W-Basketball</p>
   <h1>Coverage Tracker</h1>
-  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter the team passcode.</p>
-  <input id="pass" type="password" placeholder="Team passcode" autocomplete="current-password">
-  <div class="chips hidden" id="whochips"></div>
+  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter your personal code — Lens gives you yours.
+  It identifies you, so don't share it.</p>
+  <input id="pass" type="text" placeholder="Your code (e.g. A1B2C3)" autocomplete="current-password"
+         autocapitalize="characters" spellcheck="false" style="text-transform:uppercase; letter-spacing:.12em">
   <button class="primary" id="enter">Enter</button>
   <p class="err" id="lockerr"></p>
 </div>
@@ -111,7 +112,7 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
 <header>
   <p class="eyebrow">McGill Martlets Women's Basketball</p>
   <h1>Coverage Tracker — 2026-27</h1>
-  <p class="idline">You are <b id="whoami"></b> · <button id="switch">switch</button></p>
+  <p class="idline">Signed in as <b id="whoami"></b> · <button id="switch">sign out</button></p>
 </header>
 <div class="tabs">
   <button class="tab on" data-t="dash">Dashboard</button>
@@ -130,14 +131,15 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
 "use strict";
 var API = "https://fdybcqdavyezdvxehlee.supabase.co/functions/v1/tracker/api";
 var S = null;               // server state
+var ME = null;              // who the server says I am — never self-declared
 var FILTER = "all";
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
-function creds(){ return { passcode: localStorage.getItem("mt_pass")||"", me: localStorage.getItem("mt_me")||"" }; }
+function myCode(){ return localStorage.getItem("mt_code") || ""; }
 
 function post(body){
-  body.passcode = creds().passcode;
+  body.code = myCode();
   return fetch(API, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)})
     .then(function(r){ return r.json(); });
 }
@@ -193,11 +195,11 @@ function eventRow(ev, interactive){
   if (ev.notes) h += '<div class="note">' + esc(ev.notes) + '</div>';
   if (st !== "ctx" && interactive) {
     h += '<div class="chips">';
-    var me = creds().me;
     S.people.forEach(function(p){
       var on = S.signups.some(function(s){ return s.event_id===ev.id && s.person_id===p.id; });
-      var canTouch = (me === "Lens") || (p.name === me);
-      var cls = "chip" + (on ? " on" : "") + (p.name === me ? " me" : "") + (canTouch ? "" : " locked");
+      var mine = ME && p.id === ME.id;
+      var canTouch = ME && (ME.is_admin || mine);
+      var cls = "chip" + (on ? " on" : "") + (mine ? " me" : "") + (canTouch ? "" : " locked");
       h += '<button class="' + cls + '" ' + (canTouch ? "" : "disabled ") +
            'data-ev="' + ev.id + '" data-p="' + p.id + '" data-on="' + (on?1:0) + '">' +
            esc(p.name) + (p.standby ? " *" : "") + '</button>';
@@ -264,8 +266,7 @@ function renderCov(){
       var lbl = {all:"All", games:"Games only", uncovered:"Gaps only", mine:"My events"}[f];
       return '<button class="fbtn' + (FILTER===f?" on":"") + '" data-f="' + f + '">' + lbl + '</button>';
     }).join("") + '</div>';
-  var me = creds().me;
-  var meId = (S.people.find(function(p){ return p.name===me; })||{}).id;
+  var meId = ME ? ME.id : -1;
   var evs = S.events.filter(function(e){
     if (FILTER==="games") return e.etype==="Game"||e.etype==="Tournament";
     if (FILTER==="uncovered") return e.min_needed>0 && status(e)!=="covered";
@@ -309,7 +310,8 @@ function renderAudit(){
 function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
-    '<li>Tap your name on an event to sign up; tap again to remove yourself. Only Lens can change other people’s names.</li>' +
+    '<li>Tap your own name on an event to sign up; tap again to remove yourself. Other people’s names are locked — only Lens can move those.</li>' +
+    '<li>Your code is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
     '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
     '<li>Minimums: practice 1 · game 2 · medicals = everyone (5).</li>' +
     '<li>Remove yourself as early as possible if you can’t make it — the audit log shows every change.</li>' +
@@ -324,7 +326,7 @@ function renderHelp(){
 function renderAll(){
   if (!S) return;
   renderDash(); renderCov(); renderAudit(); renderHelp();
-  $("whoami").textContent = creds().me;
+  $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
 
@@ -342,66 +344,45 @@ document.addEventListener("click", function(e){
   if (t.classList && t.classList.contains("chip") && t.dataset.ev && !t.disabled) {
     var on = t.dataset.on === "1";
     t.disabled = true;
-    post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on, actor:creds().me})
+    post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on})
       .then(function(r){
-        if (r.ok) { S = r.state; renderAll(); }
-        else if (r.error === "bad_passcode") { lock(); }
+        if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
+        else if (r.error === "bad_code") { lock("Your code no longer works — ask Lens."); }
+        else if (r.error === "not_allowed") { t.disabled = false; alert("Only Lens can change someone else's name."); }
+        else { t.disabled = false; }
       })
       .catch(function(){ t.disabled = false; });
   }
-  if (t.id === "switch") { localStorage.removeItem("mt_me"); showApp(); }
+  if (t.id === "switch") { localStorage.removeItem("mt_code"); ME = null; S = null; lock(); }
 });
 
 /* ---------- lock screen / boot ---------- */
 function lock(msg){
   $("app").classList.add("hidden");
   $("lock").classList.remove("hidden");
-  $("whochips").classList.add("hidden");
-  $("pass").classList.remove("hidden");
-  $("enter").classList.remove("hidden");
-  $("lockmsg").textContent = "Enter the team passcode.";
   $("lockerr").textContent = msg || "";
-  $("pass").value = creds().passcode;
-}
-function pickWho(){
-  // passcode is valid, S is loaded; names come from the server only
-  $("app").classList.add("hidden");
-  $("lock").classList.remove("hidden");
-  $("pass").classList.add("hidden");
-  $("enter").classList.add("hidden");
-  $("lockmsg").textContent = "Tap your name:";
-  $("lockerr").textContent = "";
-  var h = "";
-  S.people.forEach(function(p){
-    h += '<button class="chip" data-who="' + esc(p.name) + '">' + esc(p.name) + (p.standby?" *":"") + '</button>';
-  });
-  var box = $("whochips");
-  box.innerHTML = h;
-  box.classList.remove("hidden");
-  box.querySelectorAll(".chip").forEach(function(c){
-    c.onclick = function(){
-      localStorage.setItem("mt_me", c.dataset.who);
-      showApp();
-    };
-  });
-}
-function showApp(){
-  if (!creds().me) { pickWho(); return; }
-  $("lock").classList.add("hidden");
-  $("app").classList.remove("hidden");
-  renderAll();
+  $("pass").value = "";
+  $("pass").focus();
 }
 $("enter").onclick = function(){
-  localStorage.setItem("mt_pass", $("pass").value.trim());
-  $("lockerr").textContent = "";
+  var v = $("pass").value.trim().toUpperCase();
+  if (!v) { $("lockerr").textContent = "Enter your code."; return; }
+  localStorage.setItem("mt_code", v);
+  $("lockerr").textContent = "Checking…";
   boot();
 };
 $("pass").addEventListener("keydown", function(e){ if (e.key === "Enter") $("enter").click(); });
 function boot(){
   post({action:"state"}).then(function(r){
-    if (!r.ok) { lock(r.error==="bad_passcode" ? "Wrong passcode." : ("Error: " + r.error)); return; }
-    S = r.state;
-    showApp();
+    if (!r.ok) {
+      localStorage.removeItem("mt_code");
+      lock(r.error==="bad_code" ? "That code isn't recognised." : ("Error: " + r.error));
+      return;
+    }
+    S = r.state; ME = r.me;
+    $("lock").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    renderAll();
   }).catch(function(){ lock("Network error — try again."); });
 }
 setInterval(function(){
@@ -411,7 +392,7 @@ setInterval(function(){
 document.addEventListener("visibilitychange", function(){
   if (!document.hidden && S) post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
 });
-if (creds().passcode) boot(); else lock();
+if (myCode()) boot(); else lock();
 </script>
 </body>
 </html>
