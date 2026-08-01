@@ -184,7 +184,7 @@ function badge(st){
 }
 function eventRow(ev, interactive){
   var st = status(ev);
-  var isGame = ev.etype === "Game" || ev.etype === "Tournament" || ev.etype === "Medicals";
+  var isGame = ev.etype === "Game" || ev.etype === "Tournament" || ev.etype === "Medicals" || ev.etype === "Training";
   var h = '<div class="row st-' + st + (st==="ctx" ? " ctx" : "") + (isGame ? " game" : "") + '">';
   h += '<div class="rtop"><span class="dnum">' + esc(fmtDate(ev.date)) + '</span>';
   h += '<span class="rtime">' + esc(ev.time_label) + '</span>';
