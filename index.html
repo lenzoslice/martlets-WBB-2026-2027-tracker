@@ -343,7 +343,10 @@ table.data th, table.data td { border-bottom:1px solid var(--line); padding:10px
 table.data th { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
   color:var(--ink-3); background:var(--bg); }
 table.data tr:last-child td { border-bottom:none; }
-table.data td.n { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+/* A numeric column's header must sit over its own figures, not at the far
+   left of the column. Header and cells share the alignment and the width. */
+table.data th.n, table.data td.n { text-align:right; width:74px; }
+table.data td.n { font-variant-numeric:tabular-nums; font-weight:600; }
 
 /* ---------- help ---------- */
 .help h2 { font-size:17px; margin:var(--sp-5) 0 var(--sp-2); }
@@ -665,7 +668,8 @@ function renderDash(){
 
   h += '<h2 class="sec">Workload</h2><div class="tblwrap">' +
        '<table class="data"><thead><tr><th scope="col">Name</th>' +
-       '<th scope="col">Events</th><th scope="col">Games</th></tr></thead><tbody>';
+       '<th scope="col" class="n">Events</th><th scope="col" class="n">Games</th>' +
+       '</tr></thead><tbody>';
   S.people.forEach(function(p){
     var tot = 0, g = 0;
     S.signups.forEach(function(s){
