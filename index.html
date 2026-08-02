@@ -2,194 +2,441 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ED1B2F">
 <meta name="robots" content="noindex">
 <title>Martlets Coverage 2026-27</title>
 <style>
+/* ============================================================
+   Design tokens. Status colour comes in two tones — a strong one
+   for text/borders (contrast-safe) and a soft tint for fills — so
+   nothing depends on colour alone and both themes stay legible.
+   ============================================================ */
 :root {
-  --red:#ED1B2F; --grn:#8BA04E; --org:#AA4B31;
-  --bg:#F7F6F5; --card:#FFFFFF; --ink:#1A1A1A; --sub:#5D6770; --line:#DDDBD8;
-  --grn-bg:#F0F3E6; --org-bg:#F6EAE5; --red-bg:#FDE8EA; --gry-bg:#EDECEA;
+  --brand:#ED1B2F;
+  --ok:#41701F;      --ok-tint:#EDF4E3;   --ok-line:#B9CF97;
+  --warn:#8F5115;    --warn-tint:#FBF0E3; --warn-line:#E0B584;
+  --bad:#C20E25;     --bad-tint:#FDEAEC;  --bad-line:#F0A7B0;
+
+  --bg:#FAFAF9;  --surface:#FFFFFF;  --raised:#FFFFFF;
+  --ink:#16181D; --ink-2:#4A525E;    --ink-3:#6B7480;
+  --line:#E5E4E1; --line-2:#D3D2CE;
+  --focus:#0B57D0;
+
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-pill:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --shadow-1:0 1px 2px rgba(16,18,22,.06), 0 1px 1px rgba(16,18,22,.04);
+  --shadow-2:0 4px 16px rgba(16,18,22,.10);
+  --tap:44px;
+  --dur:180ms; --ease:cubic-bezier(.2,.7,.3,1);
 }
-@media (prefers-color-scheme: dark) { :root {
-  --bg:#16171A; --card:#1F2126; --ink:#EDEDEC; --sub:#9BA3AA; --line:#33363C;
-  --grn-bg:#252A1C; --org-bg:#2C211C; --red-bg:#321B1F; --gry-bg:#24262B; --red:#F4425A;
-} }
-* { box-sizing:border-box; }
-body { font-family:Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink);
-  margin:0; line-height:1.45; }
-.wrap { max-width:780px; margin:0 auto; padding:0 14px 70px; }
-header { border-top:6px solid var(--red); padding:18px 0 10px; }
-.eyebrow { text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--red);
-  font-weight:bold; margin:0 0 4px; }
-h1 { font-size:clamp(20px,4.5vw,28px); margin:0 0 2px; }
-.idline { font-size:13px; color:var(--sub); margin:2px 0 0; }
-.idline button { border:none; background:none; color:var(--red); font-weight:bold;
-  cursor:pointer; font-size:13px; padding:0; }
-.tabs { display:flex; gap:4px; margin:14px 0 16px; border-bottom:2px solid var(--ink);
-  overflow-x:auto; }
-.tab { border:none; background:none; font:inherit; font-weight:bold; font-size:14px;
-  padding:8px 14px; cursor:pointer; color:var(--sub); white-space:nowrap; }
-.tab.on { color:var(--ink); border-bottom:4px solid var(--red); margin-bottom:-2px; }
-.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-.stat { background:var(--card); border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
-.stat b { display:block; font-size:24px; font-variant-numeric:tabular-nums; }
-.stat span { font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.07em; }
-.stat.red b { color:var(--red); } .stat.org b { color:var(--org); } .stat.grn b { color:var(--grn); }
-.warnbar { background:var(--red); color:#fff; border-radius:6px; padding:11px 14px;
-  font-weight:bold; margin:12px 0; font-size:14px; }
-h2 { font-size:16px; margin:22px 0 8px; }
-.mh { display:flex; justify-content:space-between; align-items:baseline;
-  border-bottom:2px solid var(--ink); padding:18px 0 5px; margin-bottom:8px; }
-.mh h2 { margin:0; }
-.mstat { font-size:12px; color:var(--sub); }
-.row { background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line);
-  border-radius:6px; padding:9px 12px; margin:6px 0; }
-.row.st-uncovered { border-left-color:var(--red); background:var(--red-bg); }
-.row.st-partial { border-left-color:var(--org); background:var(--org-bg); }
-.row.st-covered { border-left-color:var(--grn); background:var(--grn-bg); }
-.row.ctx { background:var(--gry-bg); color:var(--sub); }
-.rtop { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
-.dnum { font-weight:bold; font-size:14px; min-width:86px; }
-.rtime { font-size:12px; color:var(--sub); }
-.rname { font-size:14px; flex:1; min-width:150px; }
-.game .rname { font-weight:bold; }
-.badge { font-size:10px; font-weight:bold; text-transform:uppercase; letter-spacing:.05em;
-  padding:3px 8px; border-radius:99px; color:#fff; white-space:nowrap; }
-.b-red { background:var(--red); } .b-org { background:var(--org); } .b-grn { background:var(--grn); }
-.b-gry { background:transparent; color:var(--sub); border:1px solid var(--line); }
-.cnt { font-size:12px; color:var(--sub); font-variant-numeric:tabular-nums; }
-.chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-.chip { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
-  border-radius:99px; padding:5px 12px; font:inherit; font-size:13px; cursor:pointer; }
-.chip.on { background:var(--grn); border-color:var(--grn); color:#fff; font-weight:bold; }
-.chip.locked { cursor:default; opacity:.55; }
-.chip.me { border-color:var(--ink); }
-.chip:disabled { cursor:default; }
-.note { font-size:12px; color:var(--sub); margin-top:3px; }
-.filters { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 10px; }
-.fbtn { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
-  border-radius:99px; padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
-.fbtn.on { background:var(--ink); border-color:var(--ink); color:var(--bg); font-weight:bold; }
-/* ---- urgent banner + availability ---- */
-.urgent { background:var(--red); color:#fff; border-radius:6px; padding:11px 14px;
-  margin:10px 0; font-size:14px; }
-.urgent b { display:block; margin-bottom:3px; }
-.urgent ul { margin:4px 0 0; padding-left:18px; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand:#FF5266;
+    --ok:#A8CC72;      --ok-tint:#232A1A;   --ok-line:#42542A;
+    --warn:#E5A868;    --warn-tint:#2C2118; --warn-line:#5C4227;
+    --bad:#FF7285;     --bad-tint:#31161B;  --bad-line:#6B2B34;
+
+    --bg:#111214;  --surface:#1A1C20;  --raised:#212429;
+    --ink:#EFEFEE; --ink-2:#B7BEC7;    --ink-3:#8E97A2;
+    --line:#2B2F36; --line-2:#3A3F47;
+    --focus:#A8C7FA;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 6px 20px rgba(0,0,0,.5);
+  }
+}
+
+*, *::before, *::after { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  margin:0;
+  font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size:15px; line-height:1.5; color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3 { margin:0; line-height:1.25; text-wrap:balance; }
+button, input { font:inherit; color:inherit; }
+button { -webkit-tap-highlight-color:transparent; }
+svg { display:block; }
+.tnum { font-variant-numeric:tabular-nums; }
+
+/* focus: always visible, never removed */
+:focus-visible {
+  outline:3px solid var(--focus); outline-offset:2px; border-radius:var(--r-sm);
+}
+
+/* ---------- shell ---------- */
+.wrap {
+  max-width:780px; margin:0 auto;
+  padding:0 var(--sp-4) calc(var(--sp-6) + env(safe-area-inset-bottom));
+}
+.topbar {
+  position:sticky; top:0; z-index:40; background:var(--bg);
+  padding-top:env(safe-area-inset-top);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in { max-width:780px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 0; }
+.brandline {
+  display:flex; align-items:center; gap:var(--sp-2);
+  font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--brand); margin:0 0 2px;
+}
+.brandline::before {
+  content:""; width:16px; height:3px; border-radius:2px; background:var(--brand);
+}
+h1 { font-size:20px; letter-spacing:-.01em; }
+.idline { font-size:13px; color:var(--ink-3); margin:2px 0 var(--sp-3); }
+.linkbtn {
+  border:none; background:none; color:var(--brand); font-weight:600; font-size:13px;
+  padding:6px 4px; margin:-6px 0; cursor:pointer; border-radius:var(--r-sm);
+}
+.linkbtn:hover { text-decoration:underline; }
+
+/* tabs — horizontally scrollable, each a full tap target */
+.tabs {
+  display:flex; gap:var(--sp-1); overflow-x:auto; scrollbar-width:none;
+  margin:0 calc(var(--sp-4) * -1); padding:0 var(--sp-4);
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  flex:0 0 auto; min-height:var(--tap); padding:0 var(--sp-3);
+  border:none; background:none; color:var(--ink-3);
+  font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap;
+  border-bottom:3px solid transparent; transition:color var(--dur) var(--ease);
+}
+.tab[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--brand); }
+.tab:hover { color:var(--ink); }
+
+/* ---------- generic pieces ---------- */
+.card {
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r); box-shadow:var(--shadow-1);
+}
+h2.sec {
+  font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); margin:var(--sp-5) 0 var(--sp-2);
+}
+.muted { font-size:13px; color:var(--ink-3); }
+.muted.tight { margin:2px 0 0; }
+p { margin:0 0 var(--sp-3); }
+.stack > * + * { margin-top:var(--sp-2); }
+
+/* ---------- alert (sticky, top of every tab) ---------- */
+.urgent {
+  display:flex; gap:var(--sp-3); align-items:flex-start;
+  background:var(--bad-tint); border:1px solid var(--bad-line);
+  border-left:4px solid var(--bad);
+  border-radius:var(--r); padding:var(--sp-3) var(--sp-4); margin:var(--sp-4) 0 0;
+}
+.urgent svg { flex:0 0 auto; width:20px; height:20px; color:var(--bad); margin-top:1px; }
+.urgent b { display:block; font-size:14px; color:var(--ink); }
+.urgent ul { margin:var(--sp-1) 0 0; padding-left:18px; font-size:13px; color:var(--ink-2); }
 .urgent li { margin:2px 0; }
-.av-tbl { border-collapse:collapse; width:100%; }
-.av-tbl th { font-size:10px; padding:4px 2px; text-align:center; }
-.av-tbl td { border:1px solid var(--line); padding:0; text-align:center; }
-.av-tbl td:first-child { text-align:left; padding:4px 6px; font-size:12px; white-space:nowrap; }
-.av-cell { width:100%; border:none; background:var(--card); color:var(--sub);
-  font:inherit; font-size:15px; padding:8px 0; cursor:pointer; display:block; }
-.av-cell.busy { background:var(--red-bg); color:var(--red); font-weight:bold; }
-.av-cell:disabled { cursor:default; opacity:.5; }
-.av-free { font-size:12px; color:var(--sub); margin-top:3px; }
-.av-free.none { color:var(--red); font-weight:bold; }
-.bl-row { display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap; }
-.bl-row input[type=date], .bl-row input[type=text] { font:inherit; font-size:14px; padding:6px;
-  border:1.5px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
-.bl-item { display:flex; justify-content:space-between; align-items:center; gap:8px;
-  border-bottom:1px solid var(--line); padding:6px 2px; font-size:13px; }
-.bl-item button { border:none; background:none; color:var(--red); font:inherit; cursor:pointer; }
-.mini { background:var(--card); border:1.5px solid var(--line); border-radius:6px; font:inherit;
-  font-size:13px; padding:6px 12px; cursor:pointer; color:var(--ink); }
-/* ---- month calendar ---- */
-.cal-top { display:flex; align-items:center; justify-content:space-between; gap:8px;
-  margin:4px 0 10px; }
-.cal-top h2 { margin:0; font-size:17px; }
-.cal-nav { border:1.5px solid var(--line); background:var(--card); color:var(--ink);
-  border-radius:6px; width:38px; height:34px; font:inherit; font-size:16px; cursor:pointer; }
-.cal-nav:disabled { opacity:.3; cursor:default; }
-.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
-.cal-h { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--sub);
-  text-align:center; padding-bottom:2px; font-weight:bold; }
-.cal-cell { min-height:74px; background:var(--card); border:1px solid var(--line);
-  border-radius:4px; padding:3px 3px 4px; overflow:hidden; }
-.cal-cell.blank { background:transparent; border-color:transparent; }
-.cal-cell.today { border-color:var(--red); border-width:2px; }
-.cal-daynum { font-size:11px; font-weight:bold; font-variant-numeric:tabular-nums;
-  color:var(--sub); }
-.cal-cell.today .cal-daynum { color:var(--red); }
-.ce { display:block; width:100%; text-align:left; border:none; border-left:3px solid var(--line);
-  border-radius:2px; padding:2px 3px; margin-top:2px; font:inherit; font-size:9.5px;
-  line-height:1.25; cursor:pointer; color:var(--ink); background:var(--gry-bg); }
-.ce.st-uncovered { background:var(--red-bg); border-left-color:var(--red); }
-.ce.st-partial   { background:var(--org-bg); border-left-color:var(--org); }
-.ce.st-covered   { background:var(--grn-bg); border-left-color:var(--grn); }
-.ce.st-ctx { color:var(--sub); cursor:default; }
-.ce.sel { box-shadow:0 0 0 2px var(--ink); }
-.ce b { display:block; font-size:9.5px; }
-.ce .ce-w { color:var(--sub); font-size:9px; }
-.cal-legend { font-size:11px; color:var(--sub); margin:10px 0 0; }
-.cal-detail { margin-top:12px; border-top:2px solid var(--ink); padding-top:8px; }
-.cal-detail h3 { font-size:14px; margin:0 0 4px; }
-@media (max-width:560px) {
-  .cal-cell { min-height:58px; padding:2px; }
-  .ce { font-size:8.5px; padding:1px 2px; }
-  .ce .ce-w { font-size:8px; }
+
+/* ---------- stats ---------- */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-2); margin-top:var(--sp-4); }
+.stat { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--sp-3); }
+.stat b { display:block; font-size:24px; font-weight:700; letter-spacing:-.02em; }
+.stat span {
+  display:block; font-size:11px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--ink-3); margin-top:2px;
 }
-.audit-item { border-bottom:1px solid var(--line); padding:8px 2px; font-size:13px; }
-.audit-item.bad { background:var(--red-bg); border-left:4px solid var(--red); padding-left:8px; }
-.audit-when { color:var(--sub); font-size:11px; }
-table { border-collapse:collapse; width:100%; background:var(--card); }
-th, td { border:1px solid var(--line); padding:6px 10px; font-size:13px; text-align:left; }
-th { background:var(--gry-bg); text-transform:uppercase; font-size:11px; letter-spacing:.05em; }
-td.n { text-align:center; font-variant-numeric:tabular-nums; }
-.help p { max-width:65ch; font-size:14px; }
-.help li { font-size:14px; margin:4px 0; }
-.stamp { color:var(--sub); font-size:12px; margin-top:26px; border-top:1px solid var(--line);
-  padding-top:10px; }
-#lock { max-width:340px; margin:12vh auto; background:var(--card); border:1px solid var(--line);
-  border-top:6px solid var(--red); border-radius:8px; padding:24px; }
-#lock h1 { font-size:20px; }
-#lock input { width:100%; font:inherit; font-size:16px; padding:10px; margin:10px 0;
-  border:1.5px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
-#lock .chips { margin:4px 0 14px; }
-.primary { background:var(--red); color:#fff; border:none; border-radius:6px; font:inherit;
-  font-weight:bold; padding:10px 18px; cursor:pointer; width:100%; }
-.err { color:var(--red); font-size:13px; min-height:18px; margin:4px 0 0; }
-.hidden { display:none; }
-.syncline { font-size:11px; color:var(--sub); text-align:right; margin-top:6px; }
+.stat.bad b { color:var(--bad); } .stat.warn b { color:var(--warn); } .stat.ok b { color:var(--ok); }
 @media (max-width:560px) { .stats { grid-template-columns:repeat(2,1fr); } }
+
+/* ---------- event card ---------- */
+.row {
+  background:var(--surface); border:1px solid var(--line);
+  border-left:4px solid var(--line-2);
+  border-radius:var(--r); padding:var(--sp-3) var(--sp-4); margin-top:var(--sp-2);
+  box-shadow:var(--shadow-1);
+}
+.row.st-uncovered { border-left-color:var(--bad);  background:var(--bad-tint); }
+.row.st-partial   { border-left-color:var(--warn); background:var(--warn-tint); }
+.row.st-covered   { border-left-color:var(--ok);   background:var(--ok-tint); }
+.row.ctx { background:var(--bg); border-left-color:var(--line-2); }
+.row.ctx .rname { color:var(--ink-3); }
+.rtop { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-2) var(--sp-3); }
+.rdate { font-size:14px; font-weight:700; white-space:nowrap; }
+.rtime { font-size:13px; color:var(--ink-2); white-space:nowrap; }
+.rname { flex:1 1 60%; font-size:15px; }
+.row.major .rname { font-weight:700; }
+.cnt { font-size:13px; font-weight:600; color:var(--ink-2); }
+.note { font-size:13px; color:var(--ink-2); margin-top:var(--sp-1); }
+.note b { color:var(--ink); }
+
+.badge {
+  display:inline-flex; align-items:center; gap:5px;
+  font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  padding:4px 9px; border-radius:var(--r-pill); white-space:nowrap;
+  border:1px solid transparent;
+}
+.badge::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+.b-bad  { color:var(--bad);  background:var(--bad-tint);  border-color:var(--bad-line); }
+.b-warn { color:var(--warn); background:var(--warn-tint); border-color:var(--warn-line); }
+.b-ok   { color:var(--ok);   background:var(--ok-tint);   border-color:var(--ok-line); }
+.b-gry  { color:var(--ink-3); background:transparent; border-color:var(--line-2); }
+.b-gry::before { background:var(--ink-3); }
+
+.av-free { font-size:13px; color:var(--ink-2); margin-top:var(--sp-1); }
+.av-free.none { color:var(--bad); font-weight:600; }
+
+/* ---------- name chips ---------- */
+.chips { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-3); }
+.chip {
+  display:inline-flex; align-items:center; gap:6px;
+  min-height:var(--tap); padding:0 var(--sp-4);
+  border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink-2);
+  border-radius:var(--r-pill); font-size:14px; font-weight:600; cursor:pointer;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease),
+             border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.chip svg { width:15px; height:15px; opacity:0; transition:opacity var(--dur) var(--ease); }
+.chip[aria-pressed="true"] { background:var(--ok); border-color:var(--ok); color:#fff; }
+.chip[aria-pressed="true"] svg { opacity:1; }
+.chip.me { border-style:solid; border-color:var(--ink); }
+.chip.me[aria-pressed="true"] { border-color:var(--ok); }
+.chip:not(:disabled):active { transform:scale(.97); }
+.chip:disabled { opacity:.45; cursor:default; }
+.chip.pending { opacity:.55; cursor:progress; }
+
+/* ---------- filters ---------- */
+.filters { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin:var(--sp-4) 0 var(--sp-2); }
+.fbtn {
+  min-height:38px; padding:0 var(--sp-3);
+  border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink-2);
+  border-radius:var(--r-pill); font-size:13px; font-weight:600; cursor:pointer;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.fbtn[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--bg); }
+
+/* ---------- month header ---------- */
+.mh {
+  display:flex; justify-content:space-between; align-items:baseline; gap:var(--sp-3);
+  margin:var(--sp-5) 0 var(--sp-2); padding-bottom:var(--sp-2);
+  border-bottom:2px solid var(--line-2);
+}
+.mh h2 { font-size:17px; }
+.mstat { font-size:12px; color:var(--ink-3); white-space:nowrap; }
+
+/* ---------- calendar ---------- */
+.cal-top {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:var(--sp-2); margin:var(--sp-4) 0 var(--sp-3);
+}
+.cal-top h2 { font-size:19px; }
+.iconbtn {
+  display:grid; place-items:center;
+  width:var(--tap); height:var(--tap); flex:0 0 auto;
+  border:1px solid var(--line-2); background:var(--surface); color:var(--ink);
+  border-radius:var(--r); cursor:pointer;
+  transition:background var(--dur) var(--ease);
+}
+.iconbtn svg { width:20px; height:20px; }
+.iconbtn:not(:disabled):active { background:var(--line); }
+.iconbtn:disabled { opacity:.35; cursor:default; }
+
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--sp-1); }
+.cal-h {
+  font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--ink-3); text-align:center; padding-bottom:var(--sp-1);
+}
+.day {
+  display:flex; flex-direction:column; align-items:stretch; gap:1px;
+  min-height:62px; padding:5px 4px 6px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  border-radius:var(--r-sm); text-align:left; cursor:pointer; overflow:hidden;
+  transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.day.empty { background:transparent; border-color:transparent; cursor:default; }
+.day.none  { cursor:default; }
+.day.st-uncovered { background:var(--bad-tint);  border-color:var(--bad-line); }
+.day.st-partial   { background:var(--warn-tint); border-color:var(--warn-line); }
+.day.st-covered   { background:var(--ok-tint);   border-color:var(--ok-line); }
+.day.st-ctx       { background:var(--bg); }
+.day.today { box-shadow:inset 0 0 0 2px var(--brand); }
+.day[aria-pressed="true"] { box-shadow:inset 0 0 0 2px var(--ink); }
+.day:not(.empty):not(.none):active { transform:scale(.96); }
+.dnum { font-size:13px; font-weight:700; line-height:1.1; }
+.day.today .dnum { color:var(--brand); }
+.dline { font-size:11px; line-height:1.25; color:var(--ink-2); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.dcount { font-size:11px; font-weight:700; margin-top:auto; }
+.day.st-uncovered .dcount { color:var(--bad); }
+.day.st-partial   .dcount { color:var(--warn); }
+.day.st-covered   .dcount { color:var(--ok); }
+@media (max-width:400px) {
+  .day { min-height:56px; padding:4px 3px 5px; }
+  .dline, .dcount { font-size:10px; }
+}
+.legend { display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-4); margin-top:var(--sp-3); }
+.lg { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); }
+.lg i { width:12px; height:12px; border-radius:3px; border:1px solid; }
+.lg.bad i  { background:var(--bad-tint);  border-color:var(--bad-line); }
+.lg.warn i { background:var(--warn-tint); border-color:var(--warn-line); }
+.lg.ok i   { background:var(--ok-tint);   border-color:var(--ok-line); }
+.lg.gry i  { background:var(--bg);        border-color:var(--line-2); }
+.cal-detail { margin-top:var(--sp-5); padding-top:var(--sp-3); border-top:2px solid var(--line-2); }
+.cal-detail h3 { font-size:16px; margin-bottom:var(--sp-2); }
+
+/* ---------- availability ---------- */
+.av-tbl { border-collapse:separate; border-spacing:var(--sp-1); width:100%; margin-left:-4px; }
+.av-tbl th { font-size:11px; font-weight:700; color:var(--ink-3); text-align:center; padding-bottom:2px; }
+.av-tbl th.slot, .av-tbl td.slot { text-align:left; white-space:nowrap; }
+.av-tbl td.slot { font-size:12px; color:var(--ink-2); padding-right:var(--sp-2); }
+.av-tbl td.slot b { display:block; font-size:13px; color:var(--ink); }
+.av-cell {
+  display:grid; place-items:center; width:100%; min-height:46px;
+  border:1.5px solid var(--line); background:var(--surface); color:var(--ink-3);
+  border-radius:var(--r-sm); cursor:pointer;
+  transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.av-cell svg { width:16px; height:16px; opacity:.45; }
+.av-cell[aria-pressed="true"] {
+  background:var(--bad-tint); border-color:var(--bad-line); color:var(--bad);
+}
+.av-cell[aria-pressed="true"] svg { opacity:1; }
+.av-cell:disabled { opacity:.4; cursor:default; }
+.bl-row { display:flex; flex-wrap:wrap; gap:var(--sp-2); align-items:center; margin:var(--sp-3) 0; }
+.bl-row input {
+  min-height:var(--tap); padding:0 var(--sp-3); font-size:16px;
+  border:1.5px solid var(--line-2); border-radius:var(--r-sm);
+  background:var(--surface); color:var(--ink);
+}
+.bl-row input[type=text] { flex:1 1 160px; }
+.btn {
+  min-height:var(--tap); padding:0 var(--sp-4); border-radius:var(--r-sm);
+  border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink);
+  font-size:14px; font-weight:600; cursor:pointer;
+  transition:background var(--dur) var(--ease);
+}
+.btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+.btn:active { transform:scale(.98); }
+.listitem {
+  display:flex; justify-content:space-between; align-items:center; gap:var(--sp-3);
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm);
+  padding:var(--sp-2) var(--sp-3); margin-top:var(--sp-2); font-size:14px;
+}
+.listitem .del {
+  min-height:36px; padding:0 var(--sp-2); border:none; background:none;
+  color:var(--bad); font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--r-sm);
+}
+
+/* ---------- audit ---------- */
+.audit-item {
+  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line-2);
+  border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); margin-top:var(--sp-2); font-size:13.5px;
+}
+.audit-item.bad { background:var(--bad-tint); border-left-color:var(--bad); }
+.audit-when { display:block; color:var(--ink-3); font-size:12px; margin-top:2px; }
+
+/* ---------- table ---------- */
+.tblwrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+table.data { border-collapse:collapse; width:100%; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+table.data th, table.data td { border-bottom:1px solid var(--line); padding:10px 12px;
+  font-size:14px; text-align:left; }
+table.data th { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--ink-3); background:var(--bg); }
+table.data tr:last-child td { border-bottom:none; }
+table.data td.n { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+
+/* ---------- help ---------- */
+.help h2 { font-size:17px; margin:var(--sp-5) 0 var(--sp-2); }
+.help ul { padding-left:20px; margin:0; }
+.help li { margin:var(--sp-2) 0; font-size:14.5px; }
+.help p { font-size:14.5px; max-width:66ch; }
+.stamp { font-size:12.5px; color:var(--ink-3); border-top:1px solid var(--line);
+  padding-top:var(--sp-3); margin-top:var(--sp-5); }
+.syncline { font-size:12px; color:var(--ink-3); text-align:right; margin:var(--sp-5) 0 0; }
+
+/* ---------- sign-in ---------- */
+#lock { max-width:380px; margin:0 auto; padding:14vh var(--sp-4) var(--sp-6); }
+#lock .card { padding:var(--sp-5); border-top:4px solid var(--brand); }
+#lock h1 { font-size:22px; margin-bottom:var(--sp-1); }
+#lock input {
+  width:100%; min-height:52px; padding:0 var(--sp-4); margin:var(--sp-4) 0 var(--sp-2);
+  font-size:17px; letter-spacing:.18em; text-align:center;
+  border:1.5px solid var(--line-2); border-radius:var(--r);
+  background:var(--bg); color:var(--ink);
+}
+#lock .btn { width:100%; }
+.err { color:var(--bad); font-size:13.5px; min-height:20px; margin:var(--sp-2) 0 0; font-weight:600; }
+
+/* ---------- toast ---------- */
+#toast {
+  position:fixed; left:50%; transform:translateX(-50%);
+  bottom:calc(var(--sp-5) + env(safe-area-inset-bottom)); z-index:60;
+  max-width:min(520px, calc(100vw - 32px));
+}
+.toast {
+  background:var(--ink); color:var(--bg); border-radius:var(--r);
+  padding:var(--sp-3) var(--sp-4); font-size:14px; box-shadow:var(--shadow-2);
+  animation:rise var(--dur) var(--ease);
+}
+@keyframes rise { from { opacity:0; transform:translateY(8px); } }
+
+.hidden { display:none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+  .chip:active, .day:active, .btn:active { transform:none; }
+}
 </style>
 </head>
 <body>
+
+<!-- ============ sign in ============ -->
 <div id="lock" class="hidden">
-  <p class="eyebrow">McGill Martlets W-Basketball</p>
-  <h1>Coverage Tracker</h1>
-  <p id="lockmsg" style="font-size:13px;color:var(--sub)">Enter your PIN — Lens gives you yours.
-  It signs your name to every change, so keep it to yourself.</p>
-  <input id="pass" type="password" placeholder="Your PIN" autocomplete="current-password"
-         autocapitalize="characters" spellcheck="false" style="text-transform:uppercase; letter-spacing:.2em">
-  <button class="primary" id="enter">Enter</button>
-  <p class="err" id="lockerr"></p>
+  <div class="card">
+    <p class="brandline">McGill Martlets W-Basketball</p>
+    <h1>Coverage Tracker</h1>
+    <p class="muted" id="lockmsg">Enter your PIN. Lens gives you yours — it signs your name to
+      every change, so keep it to yourself.</p>
+    <label for="pass" class="muted" style="font-weight:600">PIN</label>
+    <input id="pass" type="password" inputmode="numeric" autocomplete="current-password"
+           autocapitalize="characters" spellcheck="false" placeholder="••••" aria-describedby="lockerr">
+    <button class="btn primary" id="enter">Sign in</button>
+    <p class="err" id="lockerr" role="alert"></p>
+  </div>
 </div>
 
-<div class="wrap hidden" id="app">
-<header>
-  <p class="eyebrow">McGill Martlets Women's Basketball</p>
-  <h1>Coverage Tracker — 2026-27</h1>
-  <p class="idline">Signed in as <b id="whoami"></b> · <button id="switch">sign out</button></p>
-</header>
-<div class="tabs">
-  <button class="tab on" data-t="dash">Dashboard</button>
-  <button class="tab" data-t="cal">Calendar</button>
-  <button class="tab" data-t="cov">List</button>
-  <button class="tab" data-t="avail">Availability</button>
-  <button class="tab" data-t="audit">Audit log</button>
-  <button class="tab" data-t="help">Help</button>
+<!-- ============ app ============ -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="topbar-in">
+      <p class="brandline">McGill Martlets Women's Basketball</p>
+      <h1>Coverage Tracker — 2026-27</h1>
+      <p class="idline">Signed in as <b id="whoami"></b> ·
+        <button class="linkbtn" id="switch">Sign out</button></p>
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button class="tab" role="tab" aria-selected="true"  data-t="dash">Dashboard</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="cal">Calendar</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="cov">List</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="avail">Availability</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="audit">Activity</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="alertbar" aria-live="polite"></div>
+    <div id="t-dash"  role="tabpanel" tabindex="-1"></div>
+    <div id="t-cal"   role="tabpanel" tabindex="-1" class="hidden"></div>
+    <div id="t-cov"   role="tabpanel" tabindex="-1" class="hidden"></div>
+    <div id="t-avail" role="tabpanel" tabindex="-1" class="hidden"></div>
+    <div id="t-audit" role="tabpanel" tabindex="-1" class="hidden"></div>
+    <div id="t-help"  role="tabpanel" tabindex="-1" class="hidden help"></div>
+    <p class="syncline" id="sync"></p>
+  </main>
 </div>
-<div id="alertbar"></div>
-<div id="t-dash"></div>
-<div id="t-cal" class="hidden"></div>
-<div id="t-cov" class="hidden"></div>
-<div id="t-avail" class="hidden"></div>
-<div id="t-audit" class="hidden"></div>
-<div id="t-help" class="hidden help"></div>
-<p class="syncline" id="sync"></p>
-</div>
+
+<div id="toast" aria-live="assertive"></div>
 
 <script>
 "use strict";
@@ -208,6 +455,23 @@ function post(body){
     .then(function(r){ return r.json(); });
 }
 
+/* icons — inline SVG, never emoji, so they inherit colour and scale cleanly */
+var SVG = {
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.6l3.1 3.1L13 4.8"/></svg>',
+  cross: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"/></svg>',
+  dot:   '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="2"/></svg>',
+  left:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  warn:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L22 20H2L12 3.5z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></svg>'
+};
+
+function toast(msg){
+  var box = $("toast");
+  box.innerHTML = '<div class="toast">' + esc(msg) + '</div>';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ box.innerHTML = ''; }, 4000);
+}
+
 /* ---------- derived ---------- */
 function counts(ev){
   var n = 0;
@@ -224,6 +488,7 @@ function whoOn(ev){
   });
   return names;
 }
+
 /* ---------- times & availability ---------- */
 // "4-6pm" → 960 minutes. Returns null when the label isn't a real time.
 function startMinutes(ev){
@@ -277,148 +542,14 @@ function status(ev){
   return n >= ev.min_needed ? "covered" : "partial";
 }
 function fmtDate(d){
-  var dt = new Date(d + "T12:00:00");
-  return dt.toLocaleDateString("en-CA", {weekday:"short", month:"short", day:"numeric"});
+  return new Date(d + "T12:00:00").toLocaleDateString("en-CA", {weekday:"short", month:"short", day:"numeric"});
+}
+function fmtDateLong(d){
+  return new Date(d + "T12:00:00").toLocaleDateString("en-CA", {weekday:"long", month:"long", day:"numeric"});
 }
 function monthKey(d){ return d.slice(0,7); }
 function monthLabel(d){
   return new Date(d + "T12:00:00").toLocaleDateString("en-CA", {month:"long", year:"numeric"});
-}
-
-/* ---------- rendering ---------- */
-function badge(st){
-  if (st === "uncovered") return '<span class="badge b-red">Uncovered</span>';
-  if (st === "partial") return '<span class="badge b-org">Needs more</span>';
-  if (st === "covered") return '<span class="badge b-grn">Covered</span>';
-  return '<span class="badge b-gry">No coverage needed</span>';
-}
-function eventRow(ev, interactive){
-  var st = status(ev);
-  var isGame = ev.etype === "Game" || ev.etype === "Tournament" || ev.etype === "Medicals" || ev.etype === "Training";
-  var h = '<div class="row st-' + st + (st==="ctx" ? " ctx" : "") + (isGame ? " game" : "") + '">';
-  h += '<div class="rtop"><span class="dnum">' + esc(fmtDate(ev.date)) + '</span>';
-  h += '<span class="rtime">' + esc(ev.time_label) + '</span>';
-  h += '<span class="rname">' + esc(ev.detail) + (ev.home_away ? " · " + esc(ev.home_away) : "") + '</span>';
-  h += badge(st);
-  if (st !== "ctx") h += '<span class="cnt">' + counts(ev) + "/" + ev.min_needed + '</span>';
-  h += '</div>';
-  var call = callTime(ev);
-  if (call) h += '<div class="note"><b>Be there ' + esc(call) + '</b>' +
-                 (ev.call_time ? '' : ' (30 min before)') + '</div>';
-  if (ev.notes) h += '<div class="note">' + esc(ev.notes) + '</div>';
-  if (st === "uncovered" || st === "partial") {
-    var free = freeFor(ev).map(function(p){ return p.name; });
-    h += '<div class="av-free' + (free.length ? '' : ' none') + '">' +
-         (free.length ? 'Free that day: ' + esc(free.join(", ")) : 'Nobody has marked themselves free') +
-         '</div>';
-  }
-  if (st !== "ctx" && interactive) {
-    h += '<div class="chips">';
-    S.people.forEach(function(p){
-      var on = S.signups.some(function(s){ return s.event_id===ev.id && s.person_id===p.id; });
-      var mine = ME && p.id === ME.id;
-      var canTouch = ME && (ME.is_admin || mine);
-      var cls = "chip" + (on ? " on" : "") + (mine ? " me" : "") + (canTouch ? "" : " locked");
-      h += '<button class="' + cls + '" ' + (canTouch ? "" : "disabled ") +
-           'data-ev="' + ev.id + '" data-p="' + p.id + '" data-on="' + (on?1:0) + '">' +
-           esc(p.name) + (p.standby ? " *" : "") + '</button>';
-    });
-    h += '</div>';
-  } else if (st !== "ctx") {
-    var names = whoOn(ev);
-    h += '<div class="note">✓ ' + (names.length ? esc(names.join(", ")) : "—") + '</div>';
-  }
-  h += '</div>';
-  return h;
-}
-
-function renderDash(){
-  var need = S.events.filter(function(e){ return e.min_needed > 0; });
-  var unc = need.filter(function(e){ return status(e)==="uncovered"; });
-  var par = need.filter(function(e){ return status(e)==="partial"; });
-  var cov = need.filter(function(e){ return status(e)==="covered"; });
-  var today = todayISO();
-  var wk = isoLocal(new Date(Date.now() + 7*864e5));
-  var soon = need.filter(function(e){ return e.date >= today && e.date <= wk; });
-  var soonBad = soon.filter(function(e){ return status(e)!=="covered"; });
-
-  var h = '<div class="stats">' +
-    '<div class="stat"><b>' + need.length + '</b><span>Events</span></div>' +
-    '<div class="stat red"><b>' + unc.length + '</b><span>Uncovered</span></div>' +
-    '<div class="stat org"><b>' + par.length + '</b><span>Needs more</span></div>' +
-    '<div class="stat grn"><b>' + cov.length + '</b><span>Covered</span></div></div>';
-
-  if (soonBad.length) {
-    h += '<div class="warnbar">⚠ Next 7 days: ' + soonBad.length +
-         ' event' + (soonBad.length>1?"s":"") + ' below minimum — tap Coverage to sign up.</div>';
-  }
-  var lost = S.audit.filter(function(a){ return a.action==="removed" && a.covered_after===0; }).slice(0,3);
-  if (lost.length) {
-    h += '<h2>Recently lost coverage</h2>';
-    lost.forEach(function(a){
-      h += '<div class="audit-item bad"><b>' + esc(a.person) + '</b> removed — <b>' +
-           esc(a.event_label) + '</b> now has NOBODY <span class="audit-when">(' + when(a.at) + ')</span></div>';
-    });
-  }
-  if (soon.length) {
-    h += '<h2>Next 7 days</h2>';
-    soon.forEach(function(e){ h += eventRow(e, true); });
-  }
-  h += '<h2>Workload</h2><table><tr><th>Name</th><th>Total ✓</th><th>Games ✓</th></tr>';
-  S.people.forEach(function(p){
-    var tot=0, g=0;
-    S.signups.forEach(function(s){
-      if (s.person_id!==p.id) return;
-      tot++;
-      var ev = S.events.find(function(e){ return e.id===s.event_id; });
-      if (ev && (ev.etype==="Game"||ev.etype==="Tournament")) g++;
-    });
-    h += '<tr><td>' + esc(p.name) + (p.standby?" (standby)":"") + '</td><td class="n">' + tot + '</td><td class="n">' + g + '</td></tr>';
-  });
-  h += '</table>';
-  $("t-dash").innerHTML = h;
-}
-
-function renderCov(){
-  var h = '<div class="filters">' +
-    ['all','games','uncovered','mine'].map(function(f){
-      var lbl = {all:"All", games:"Games only", uncovered:"Gaps only", mine:"My events"}[f];
-      return '<button class="fbtn' + (FILTER===f?" on":"") + '" data-f="' + f + '">' + lbl + '</button>';
-    }).join("") + '</div>';
-  var meId = ME ? ME.id : -1;
-  var evs = S.events.filter(function(e){
-    if (FILTER==="games") return e.etype==="Game"||e.etype==="Tournament";
-    if (FILTER==="uncovered") return e.min_needed>0 && status(e)!=="covered";
-    if (FILTER==="mine") return S.signups.some(function(s){ return s.event_id===e.id && s.person_id===meId; });
-    return true;
-  });
-  var lastM = "";
-  evs.forEach(function(e){
-    var mk = monthKey(e.date);
-    if (mk !== lastM) {
-      lastM = mk;
-      var inMonth = evs.filter(function(x){ return monthKey(x.date)===mk && x.min_needed>0; });
-      var bad = inMonth.filter(function(x){ return status(x)!=="covered"; });
-      h += '<div class="mh"><h2>' + esc(monthLabel(e.date)) + '</h2><span class="mstat">' +
-           inMonth.length + ' events · ' + bad.length + ' below min</span></div>';
-    }
-    h += eventRow(e, true);
-  });
-  if (!evs.length) h += '<p class="note">Nothing matches this filter.</p>';
-  $("t-cov").innerHTML = h;
-}
-
-/* ---------- month calendar ---------- */
-var CAL_MONTH = null;   // "YYYY-MM"
-var CAL_DAY = null;     // selected date, drives the detail panel
-
-function monthList(){
-  var out = [];
-  S.events.forEach(function(e){
-    var m = monthKey(e.date);
-    if (out.indexOf(m) === -1) out.push(m);
-  });
-  return out.sort();
 }
 // Local date, NOT toISOString() — that returns UTC, which rolls over to
 // tomorrow after 8pm in Montreal and highlights the wrong day.
@@ -428,8 +559,7 @@ function isoLocal(d){
 }
 function todayISO(){ return isoLocal(new Date()); }
 
-// "2-4pm" → "2pm", "6:30-9am" → "6:30am": the start often carries no am/pm,
-// so borrow it from the end rather than showing a bare number.
+// "2-4pm" → "2pm": the start often carries no am/pm, so borrow it from the end.
 function startTime(ev){
   var t = (ev.time_label || '').replace(' ⚠️', '').trim();
   if (!t) return 'TBD';
@@ -441,22 +571,178 @@ function startTime(ev){
   }
   return start;
 }
-
-function shortLabel(ev){
+function shortLabel(ev, max){
   var s = ev.detail;
-  s = s.replace(/^Game\s+/, '');                       // "Game vs Laval" → "vs Laval"
+  s = s.replace(/^Game\s+/, '');
   s = s.replace(/^Sport Physiotherapy Training Weekend/, 'Training');
   s = s.replace(/^Pre-Season Medicals.*/, 'Medicals');
+  s = s.replace(/\s*⚠️/g, '');
   s = s.split(' — ')[0].split(' (')[0];
-  return s.length > 20 ? s.slice(0, 19) + '…' : s;
+  max = max || 20;
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
 }
-function initials(ev){
-  return whoOn(ev).map(function(n){ return n.charAt(0); }).join(' ');
+
+/* ---------- shared rendering ---------- */
+var LABEL = { uncovered:"Uncovered", partial:"Needs more", covered:"Covered", ctx:"No coverage needed" };
+var TONE  = { uncovered:"b-bad", partial:"b-warn", covered:"b-ok", ctx:"b-gry" };
+
+function badge(st){ return '<span class="badge ' + TONE[st] + '">' + LABEL[st] + '</span>'; }
+
+function eventRow(ev, interactive){
+  var st = status(ev);
+  var major = ["Game","Tournament","Medicals","Training"].indexOf(ev.etype) !== -1;
+  var h = '<article class="row st-' + st + (st === "ctx" ? " ctx" : "") + (major ? " major" : "") + '">';
+  h += '<div class="rtop"><span class="rdate">' + esc(fmtDate(ev.date)) + '</span>';
+  if (ev.time_label) h += '<span class="rtime">' + esc(ev.time_label) + '</span>';
+  h += '<span class="rname">' + esc(ev.detail) + (ev.home_away ? ' · ' + esc(ev.home_away) : '') + '</span>';
+  h += badge(st);
+  if (st !== "ctx") h += '<span class="cnt tnum">' + counts(ev) + '/' + ev.min_needed + '</span>';
+  h += '</div>';
+
+  var call = callTime(ev);
+  if (call) h += '<p class="note"><b>Be there ' + esc(call) + '</b>' +
+                 (ev.call_time ? '' : ' — 30 min before') + '</p>';
+  if (ev.notes) h += '<p class="note">' + esc(ev.notes) + '</p>';
+
+  if (st === "uncovered" || st === "partial") {
+    var free = freeFor(ev).map(function(p){ return p.name; });
+    h += '<p class="av-free' + (free.length ? '' : ' none') + '">' +
+         (free.length ? 'Free that day: ' + esc(free.join(", "))
+                      : 'Nobody has marked themselves free') + '</p>';
+  }
+
+  if (st !== "ctx" && interactive) {
+    h += '<div class="chips">';
+    S.people.forEach(function(p){
+      var on = S.signups.some(function(s){ return s.event_id === ev.id && s.person_id === p.id; });
+      var mine = ME && p.id === ME.id;
+      var canTouch = ME && (ME.is_admin || mine);
+      h += '<button class="chip' + (mine ? ' me' : '') + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
+           (canTouch ? '' : ' disabled') +
+           ' data-ev="' + ev.id + '" data-p="' + p.id + '"' +
+           ' aria-label="' + esc(p.name) + (on ? ' is covering' : ' is not covering') + ' ' +
+           esc(shortLabel(ev, 40)) + ' on ' + esc(fmtDate(ev.date)) + '">' +
+           SVG.check + '<span>' + esc(p.name) + (p.standby ? ' *' : '') + '</span></button>';
+    });
+    h += '</div>';
+  } else if (st !== "ctx") {
+    var names = whoOn(ev);
+    h += '<p class="note">Covering: ' + (names.length ? esc(names.join(", ")) : "nobody yet") + '</p>';
+  }
+  return h + '</article>';
+}
+
+/* ---------- dashboard ---------- */
+function renderDash(){
+  var need = S.events.filter(function(e){ return e.min_needed > 0; });
+  var unc = need.filter(function(e){ return status(e) === "uncovered"; });
+  var par = need.filter(function(e){ return status(e) === "partial"; });
+  var cov = need.filter(function(e){ return status(e) === "covered"; });
+  var today = todayISO();
+  var wk = isoLocal(new Date(Date.now() + 7*864e5));
+  var soon = need.filter(function(e){ return e.date >= today && e.date <= wk; });
+  var soonBad = soon.filter(function(e){ return status(e) !== "covered"; });
+
+  var h = '<div class="stats">' +
+    '<div class="stat"><b class="tnum">' + need.length + '</b><span>Events</span></div>' +
+    '<div class="stat bad"><b class="tnum">' + unc.length + '</b><span>Uncovered</span></div>' +
+    '<div class="stat warn"><b class="tnum">' + par.length + '</b><span>Needs more</span></div>' +
+    '<div class="stat ok"><b class="tnum">' + cov.length + '</b><span>Covered</span></div></div>';
+
+  h += '<h2 class="sec">Next 7 days</h2>';
+  if (!soon.length) {
+    h += '<p class="muted">Nothing scheduled in the next week.</p>';
+  } else {
+    if (soonBad.length) {
+      h += '<p class="muted">' + soonBad.length + ' of these ' +
+           (soonBad.length > 1 ? 'still need' : 'still needs') + ' someone.</p>';
+    }
+    soon.forEach(function(e){ h += eventRow(e, true); });
+  }
+
+  h += '<h2 class="sec">Workload</h2><div class="tblwrap">' +
+       '<table class="data"><thead><tr><th scope="col">Name</th>' +
+       '<th scope="col">Events</th><th scope="col">Games</th></tr></thead><tbody>';
+  S.people.forEach(function(p){
+    var tot = 0, g = 0;
+    S.signups.forEach(function(s){
+      if (s.person_id !== p.id) return;
+      tot++;
+      var ev = S.events.find(function(e){ return e.id === s.event_id; });
+      if (ev && (ev.etype === "Game" || ev.etype === "Tournament")) g++;
+    });
+    h += '<tr><th scope="row" style="font-weight:600">' + esc(p.name) +
+         (p.standby ? ' (standby)' : '') + '</th>' +
+         '<td class="n">' + tot + '</td><td class="n">' + g + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  $("t-dash").innerHTML = h;
+}
+
+/* ---------- list ---------- */
+function renderCov(){
+  var opts = [["all","All"],["games","Games"],["uncovered","Gaps only"],["mine","Mine"]];
+  var h = '<div class="filters" role="group" aria-label="Filter events">';
+  opts.forEach(function(o){
+    h += '<button class="fbtn" aria-pressed="' + (FILTER === o[0]) + '" data-f="' + o[0] + '">' +
+         o[1] + '</button>';
+  });
+  h += '</div>';
+
+  var meId = ME ? ME.id : -1;
+  var evs = S.events.filter(function(e){
+    if (FILTER === "games") return e.etype === "Game" || e.etype === "Tournament";
+    if (FILTER === "uncovered") return e.min_needed > 0 && status(e) !== "covered";
+    if (FILTER === "mine") return S.signups.some(function(s){ return s.event_id === e.id && s.person_id === meId; });
+    return true;
+  });
+
+  var lastM = "";
+  evs.forEach(function(e){
+    var mk = monthKey(e.date);
+    if (mk !== lastM) {
+      lastM = mk;
+      var inMonth = evs.filter(function(x){ return monthKey(x.date) === mk && x.min_needed > 0; });
+      var bad = inMonth.filter(function(x){ return status(x) !== "covered"; });
+      h += '<div class="mh"><h2>' + esc(monthLabel(e.date)) + '</h2><span class="mstat">' +
+           inMonth.length + ' to cover · ' + bad.length + ' open</span></div>';
+    }
+    h += eventRow(e, true);
+  });
+  if (!evs.length) {
+    h += '<p class="muted">' + (FILTER === "mine"
+         ? "You haven't signed up for anything yet. Try the Gaps filter to find something."
+         : "Nothing matches this filter.") + '</p>';
+  }
+  $("t-cov").innerHTML = h;
+}
+
+/* ---------- calendar ---------- */
+var CAL_MONTH = null;   // "YYYY-MM"
+var CAL_DAY = null;     // selected date, drives the detail panel
+
+function monthList(){
+  var out = [];
+  S.events.forEach(function(e){
+    var m = monthKey(e.date);
+    if (out.indexOf(m) === -1) out.push(m);
+  });
+  return out.sort();
+}
+// Worst status wins, so a day with one uncovered event reads as uncovered.
+function dayStatus(evs){
+  var order = ["uncovered","partial","covered","ctx"];
+  var best = null;
+  evs.forEach(function(e){
+    var st = status(e);
+    if (best === null || order.indexOf(st) < order.indexOf(best)) best = st;
+  });
+  return best;
 }
 
 function renderCal(){
   var months = monthList();
-  if (!months.length) { $("t-cal").innerHTML = '<p class="note">No events yet.</p>'; return; }
+  if (!months.length) { $("t-cal").innerHTML = '<p class="muted">No events yet.</p>'; return; }
   if (!CAL_MONTH || months.indexOf(CAL_MONTH) === -1) {
     var tm = todayISO().slice(0,7);
     CAL_MONTH = months.indexOf(tm) !== -1 ? tm : months[0];
@@ -465,59 +751,76 @@ function renderCal(){
   var y = +CAL_MONTH.slice(0,4), m = +CAL_MONTH.slice(5,7);
   var first = new Date(y, m - 1, 1);
   var daysInMonth = new Date(y, m, 0).getDate();
-  var lead = first.getDay();                            // 0 = Sunday
+  var lead = first.getDay();
 
   var h = '<div class="cal-top">' +
-    '<button class="cal-nav" data-mo="prev"' + (idx === 0 ? ' disabled' : '') + ' aria-label="Previous month">‹</button>' +
+    '<button class="iconbtn" data-mo="prev"' + (idx === 0 ? ' disabled' : '') +
+      ' aria-label="Previous month">' + SVG.left + '</button>' +
     '<h2>' + first.toLocaleDateString("en-CA", {month:"long", year:"numeric"}) + '</h2>' +
-    '<button class="cal-nav" data-mo="next"' + (idx === months.length - 1 ? ' disabled' : '') + ' aria-label="Next month">›</button>' +
-    '</div><div class="cal-grid">';
+    '<button class="iconbtn" data-mo="next"' + (idx === months.length - 1 ? ' disabled' : '') +
+      ' aria-label="Next month">' + SVG.right + '</button></div>';
 
+  h += '<div class="cal-grid" role="grid" aria-label="' +
+       esc(first.toLocaleDateString("en-CA", {month:"long", year:"numeric"})) + '">';
   ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(d){
-    h += '<div class="cal-h">' + d + '</div>';
+    h += '<div class="cal-h" role="columnheader">' + d + '</div>';
   });
-  for (var i = 0; i < lead; i++) h += '<div class="cal-cell blank"></div>';
+  for (var i = 0; i < lead; i++) h += '<div class="day empty" aria-hidden="true"></div>';
 
   var today = todayISO();
   for (var day = 1; day <= daysInMonth; day++) {
     var iso = CAL_MONTH + '-' + (day < 10 ? '0' + day : day);
     var evs = S.events.filter(function(e){ return e.date === iso; });
-    h += '<div class="cal-cell' + (iso === today ? ' today' : '') + '">' +
-         '<span class="cal-daynum">' + day + '</span>';
-    evs.forEach(function(e){
-      var st = status(e);
-      var sel = (CAL_DAY === iso) ? ' sel' : '';
-      if (st === "ctx") {
-        h += '<span class="ce st-ctx">' + esc(shortLabel(e)) + '</span>';
-      } else {
-        h += '<button class="ce st-' + st + sel + '" data-day="' + iso + '">' +
-             '<b>' + esc(startTime(e)) + '</b>' +
-             esc(shortLabel(e)) +
-             '<span class="ce-w">' + (initials(e) || '—') + ' ' + counts(e) + '/' + e.min_needed + '</span>' +
-             '</button>';
+    var st = dayStatus(evs);
+    var needing = evs.filter(function(e){ return e.min_needed > 0; });
+    var cls = 'day' + (st ? ' st-' + st : ' none') + (iso === today ? ' today' : '');
+    var label = fmtDateLong(iso) + (evs.length
+      ? ', ' + evs.length + (evs.length > 1 ? ' events' : ' event') +
+        (needing.length ? ', ' + LABEL[st] : ', no coverage needed')
+      : ', nothing scheduled');
+
+    h += '<button class="' + cls + '"' + (evs.length ? '' : ' disabled') +
+         ' data-day="' + iso + '" aria-pressed="' + (CAL_DAY === iso) + '"' +
+         ' aria-label="' + esc(label) + '">' +
+         '<span class="dnum tnum" aria-hidden="true">' + day + '</span>';
+    if (evs.length) {
+      var lead2 = needing[0] || evs[0];
+      h += '<span class="dline" aria-hidden="true">' +
+           esc(lead2.min_needed > 0 ? startTime(lead2) : shortLabel(lead2, 8)) + '</span>';
+      h += '<span class="dline" aria-hidden="true">' + esc(shortLabel(lead2, 9)) + '</span>';
+      if (needing.length) {
+        var totC = 0, totN = 0;
+        needing.forEach(function(e){ totC += counts(e); totN += e.min_needed; });
+        h += '<span class="dcount tnum" aria-hidden="true">' + totC + '/' + totN +
+             (evs.length > 1 ? ' ·' + evs.length : '') + '</span>';
       }
-    });
-    h += '</div>';
+    }
+    h += '</button>';
   }
   h += '</div>';
-  h += '<p class="cal-legend">Tap any coloured block to sign up. ' +
-       'Red = nobody · orange = below minimum · green = covered · grey = no coverage needed.</p>';
+
+  h += '<div class="legend">' +
+    '<span class="lg bad"><i></i>Nobody</span>' +
+    '<span class="lg warn"><i></i>Below minimum</span>' +
+    '<span class="lg ok"><i></i>Covered</span>' +
+    '<span class="lg gry"><i></i>No coverage needed</span></div>' +
+    '<p class="muted tight">Tap a day to open it and sign up.</p>';
 
   if (CAL_DAY) {
     var dayEvs = S.events.filter(function(e){ return e.date === CAL_DAY; });
     if (dayEvs.length) {
-      h += '<div class="cal-detail"><h3>' + esc(fmtDate(CAL_DAY)) + '</h3>';
+      h += '<section class="cal-detail"><h3>' + esc(fmtDateLong(CAL_DAY)) + '</h3>';
       dayEvs.forEach(function(e){ h += eventRow(e, true); });
-      h += '</div>';
+      h += '</section>';
     }
   }
   $("t-cal").innerHTML = h;
 }
 
-/* ---------- availability tab ---------- */
-var AV_WHO = null;   // which person's availability is on screen (Lens may switch)
-
+/* ---------- availability ---------- */
+var AV_WHO = null;
 var DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var DAYS_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 var SLOTS = [["morning","Morning","before noon"],
              ["afternoon","Afternoon","12–5pm"],
              ["evening","Evening","5pm on"]];
@@ -529,88 +832,89 @@ function renderAvail(){
   var mine = who.id === ME.id;
   var editable = mine || ME.is_admin;
 
-  var h = '<h2>When ' + (mine ? 'you are' : esc(who.name) + ' is') + ' not available</h2>' +
-    '<p class="note">Tap a box for any time you normally <b>cannot</b> cover — classes, work, standing commitments. ' +
-    'Empty means available. This never signs you up for anything; it just shows Lens where the real gaps are.</p>';
+  var h = '<h2 class="sec">Weekly — when ' + (mine ? 'you can\'t' : esc(who.name) + ' can\'t') + ' cover</h2>' +
+    '<p class="muted">Tap any time you normally <b>cannot</b> make. Empty means available. ' +
+    'This never signs you up — it shows where the roster is genuinely short.</p>';
 
   if (ME.is_admin && S.people.length > 1) {
-    h += '<div class="chips" style="margin:8px 0">';
+    h += '<div class="chips" role="group" aria-label="Whose availability">';
     S.people.forEach(function(p){
-      h += '<button class="chip' + (p.id === AV_WHO ? ' on' : '') + '" data-av-who="' + p.id + '">' +
-           esc(p.name) + '</button>';
+      h += '<button class="chip" aria-pressed="' + (p.id === AV_WHO) + '" data-av-who="' + p.id + '">' +
+           SVG.check + '<span>' + esc(p.name) + '</span></button>';
     });
     h += '</div>';
   }
 
-  h += '<table class="av-tbl"><tr><th></th>';
-  DAYS.forEach(function(d){ h += '<th>' + d + '</th>'; });
-  h += '</tr>';
+  h += '<div class="tblwrap"><table class="av-tbl"><thead><tr><th class="slot"></th>';
+  DAYS.forEach(function(d){ h += '<th scope="col">' + d + '</th>'; });
+  h += '</tr></thead><tbody>';
   SLOTS.forEach(function(s){
-    h += '<tr><td><b>' + s[1] + '</b><br><span class="note">' + s[2] + '</span></td>';
+    h += '<tr><th scope="row" class="slot"><b>' + s[1] + '</b>' + s[2] + '</th>';
     for (var wd = 0; wd < 7; wd++) {
       var busy = S.weekly.some(function(w){
         return w.person_id === who.id && w.weekday === wd && w.slot === s[0];
       });
-      h += '<td><button class="av-cell' + (busy ? ' busy' : '') + '"' +
-           (editable ? '' : ' disabled') +
-           ' data-av-wd="' + wd + '" data-av-slot="' + s[0] + '" data-av-on="' + (busy ? 1 : 0) + '">' +
-           (busy ? '✕' : '·') + '</button></td>';
+      h += '<td><button class="av-cell" aria-pressed="' + busy + '"' + (editable ? '' : ' disabled') +
+           ' data-av-wd="' + wd + '" data-av-slot="' + s[0] + '"' +
+           ' aria-label="' + DAYS_FULL[wd] + ' ' + s[1].toLowerCase() + ': ' +
+           (busy ? 'unavailable' : 'available') + '">' +
+           (busy ? SVG.cross : SVG.dot) + '</button></td>';
     }
     h += '</tr>';
   });
-  h += '</table>';
+  h += '</tbody></table></div>';
 
-  h += '<h2>Specific days off</h2>' +
-       '<p class="note">Exams, trips, anything one-off.</p>';
+  h += '<h2 class="sec">Specific days off</h2><p class="muted">Exams, trips, anything one-off.</p>';
   if (editable) {
     h += '<div class="bl-row">' +
+         '<label for="bl-date" class="hidden">Date off</label>' +
          '<input type="date" id="bl-date" min="2026-08-01" max="2027-06-30">' +
-         '<input type="text" id="bl-note" placeholder="reason (optional)" maxlength="40">' +
-         '<button class="mini" id="bl-add">Add</button></div>';
+         '<label for="bl-note" class="hidden">Reason</label>' +
+         '<input type="text" id="bl-note" placeholder="Reason (optional)" maxlength="40">' +
+         '<button class="btn" id="bl-add">Add</button></div>';
   }
-  var mineBl = S.blackouts.filter(function(b){ return b.person_id === who.id; })
-                          .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-  if (!mineBl.length) h += '<p class="note">None yet.</p>';
-  mineBl.forEach(function(b){
-    h += '<div class="bl-item"><span>' + esc(fmtDate(b.date)) +
+  var bl = S.blackouts.filter(function(b){ return b.person_id === who.id; })
+                      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  if (!bl.length) h += '<p class="muted">None yet.</p>';
+  bl.forEach(function(b){
+    h += '<div class="listitem"><span>' + esc(fmtDate(b.date)) +
          (b.note ? ' — ' + esc(b.note) : '') + '</span>' +
-         (editable ? '<button data-bl-del="' + b.date + '">remove</button>' : '') + '</div>';
+         (editable ? '<button class="del" data-bl-del="' + b.date +
+                     '" aria-label="Remove day off on ' + esc(fmtDate(b.date)) + '">Remove</button>' : '') +
+         '</div>';
   });
 
-  // Where the roster is structurally short: uncovered events nobody is free for.
   var today = todayISO();
   var trouble = S.events.filter(function(e){
     return e.min_needed > 0 && e.date >= today && status(e) !== 'covered' && freeFor(e).length === 0;
   });
-  h += '<h2>Gaps nobody is free for</h2>';
+  h += '<h2 class="sec">Gaps nobody is free for</h2>';
   if (!trouble.length) {
-    h += '<p class="note">None — every open slot has at least one person available.</p>';
+    h += '<p class="muted">None — every open slot has at least one person available.</p>';
   } else {
-    h += '<p class="note">These need a schedule conversation, not a reminder:</p>';
+    h += '<p class="muted">These need a schedule conversation, not a reminder:</p>';
     trouble.slice(0, 12).forEach(function(e){
-      h += '<div class="bl-item"><span>' + esc(fmtDate(e.date)) + ' · ' +
+      h += '<div class="listitem"><span>' + esc(fmtDate(e.date)) + ' · ' +
            esc(e.time_label) + ' — ' + esc(e.detail) + '</span></div>';
     });
-    if (trouble.length > 12) h += '<p class="note">…and ' + (trouble.length - 12) + ' more.</p>';
+    if (trouble.length > 12) h += '<p class="muted">…and ' + (trouble.length - 12) + ' more.</p>';
   }
   $("t-avail").innerHTML = h;
 }
 
-/* ---------- urgent banner (visible on every tab) ---------- */
+/* ---------- alert ---------- */
 function renderAlert(){
-  var today = todayISO();
   var lost = S.audit.filter(function(a){
     return a.action === 'removed' && a.covered_after < a.min_needed &&
            (Date.now() - new Date(a.at).getTime()) < 48 * 3600 * 1000;
   }).slice(0, 4);
   if (!lost.length) { $("alertbar").innerHTML = ''; return; }
-  var h = '<div class="urgent"><b>⚠ Coverage was dropped — these need someone</b><ul>';
+  var h = '<div class="urgent" role="alert">' + SVG.warn + '<div><b>Coverage dropped — these need someone</b><ul>';
   lost.forEach(function(a){
     h += '<li>' + esc(a.event_label) + ' — now ' + a.covered_after + '/' + a.min_needed +
-         (a.covered_after === 0 ? ' (NOBODY)' : '') + ' · ' + esc(a.person) + ' came off</li>';
+         (a.covered_after === 0 ? ' (nobody)' : '') + ', ' + esc(a.person) + ' came off</li>';
   });
-  h += '</ul></div>';
-  $("alertbar").innerHTML = h;
+  $("alertbar").innerHTML = h + '</ul></div></div>';
 }
 
 function when(iso){
@@ -618,15 +922,15 @@ function when(iso){
     {timeZone:"America/Toronto", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
 }
 function renderAudit(){
-  var h = '<p class="note">Every add/remove, newest first. Red = the change left an event below its minimum.</p>';
-  if (!S.audit.length) h += '<p class="note">No changes yet.</p>';
+  var h = '<h2 class="sec">Every change, newest first</h2>';
+  if (!S.audit.length) h += '<p class="muted">No changes yet.</p>';
   S.audit.forEach(function(a){
-    var bad = a.action==="removed" && a.covered_after < a.min_needed;
-    h += '<div class="audit-item' + (bad?" bad":"") + '">' +
-      '<b>' + esc(a.person) + '</b> ' + (a.action==="added"?"signed up for":"removed from") +
+    var bad = a.action === "removed" && a.covered_after < a.min_needed;
+    h += '<div class="audit-item' + (bad ? " bad" : "") + '">' +
+      '<b>' + esc(a.person) + '</b> ' + (a.action === "added" ? "signed up for" : "came off") +
       ' <b>' + esc(a.event_label) + '</b> → now ' + a.covered_after + '/' + a.min_needed +
-      (a.actor && a.actor !== a.person ? ' <span class="audit-when">(by ' + esc(a.actor) + ')</span>' : '') +
-      ' <span class="audit-when">' + when(a.at) + '</span></div>';
+      '<span class="audit-when">' + when(a.at) +
+      (a.actor && a.actor !== a.person ? ' · changed by ' + esc(a.actor) : '') + '</span></div>';
   });
   $("t-audit").innerHTML = h;
 }
@@ -634,23 +938,22 @@ function renderAudit(){
 function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
-    '<li>Two ways to look at the season: <b>Calendar</b> shows a whole month at a glance — tap any coloured block to open that day and sign up. <b>List</b> shows everything in order with filters.</li>' +
-    '<li>Tap your own name on an event to sign up; tap again to remove yourself. Other people’s names are locked — only Lens can move those.</li>' +
-    '<li>Your PIN is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
-    '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
-    '<li><b>Be there 30 minutes before a practice starts.</b> Games have their own arrival time shown on the event once Lens sets it.</li>' +
+    '<li>Two views of the same season. <b>Calendar</b> shows a month at a glance — tap a day to open it. <b>List</b> runs in order with filters.</li>' +
+    '<li>Tap your own name to sign up, tap again to come off. Other people’s names are locked; only Lens can move those.</li>' +
+    '<li><b>Red</b> = nobody covering · <b>orange</b> = below the minimum · <b>green</b> = covered. Every colour also carries a written label.</li>' +
+    '<li><b>Be there 30 minutes before a practice starts.</b> Games show their own arrival time once Lens sets it.</li>' +
     '<li>Minimums: practice 1 · game 2 · all-hands events (medicals, training, first practice) = everyone.</li>' +
-    '<li>Road trips (Ravens’ in Ottawa, TMU in Toronto) are one sign-up covering the whole trip, travel to return.</li>' +
-    '<li>We are not needed for shoot-arounds — just the game.</li>' +
-    '<li><b>Availability tab:</b> mark the times you normally can’t cover, and any one-off days off. It never signs you up; it shows Lens where the roster is genuinely short so gaps get solved early instead of the night before.</li>' +
-    '<li>Taking your name off something already covered asks you to confirm first, and tells everyone else immediately that it needs someone. Do it as early as you can.</li>' +
-    '<li>Remove yourself as early as possible if you can’t make it — the audit log shows every change.</li>' +
-    '<li>Judd * is standby until confirmed.</li>' +
-    '<li>⚠️ marks unverified facts (opponents were read from calendar logos; game times TBD). Do not plan around ⚠️ items until confirmed.</li>' +
+    '<li>Road trips — Ravens’ in Ottawa, TMU in Toronto — are a single sign-up covering the whole trip, travel through return.</li>' +
+    '<li>We are not needed for shoot-arounds, just the game.</li>' +
+    '<li><b>Availability</b> is where you mark the times you can’t cover and any one-off days off. It never signs you up; it shows Lens where the roster is genuinely short, so gaps get solved early instead of the night before.</li>' +
+    '<li>Coming off something already covered asks you to confirm, then tells everyone immediately. Do it as early as you can.</li>' +
+    '<li>Your PIN is personal — it signs your name to every change. Lost it? Lens can issue a new one.</li>' +
+    '<li>⚠️ in an event means that detail isn’t confirmed yet. Don’t plan around it.</li>' +
     '</ul>' +
-    '<h2>Schedule changes</h2><p>Only Lens edits the schedule itself (via Mary). If a practice moves or a game is added, it appears here — check the Dashboard weekly.</p>' +
-    '<p class="stamp">Schedule source: August 2026 + Fall 2026 team calendars provided by Lens, transcribed 2026-08-01. ' +
-    'Winter 2027 will be added when published. This page updates live; it refreshes automatically.</p>';
+    '<h2>Schedule changes</h2>' +
+    '<p>Only Lens edits the schedule itself. If a practice moves or a game is added it appears here automatically — the page refreshes on its own.</p>' +
+    '<p class="stamp">Schedule source: August 2026 and Fall 2026 team calendars provided by Lens, ' +
+    'transcribed 2026-08-01. Winter 2027 will be added when published.</p>';
 }
 
 function renderAll(){
@@ -660,83 +963,112 @@ function renderAll(){
   $("sync").textContent = "Updated " + when(S.now);
 }
 
-/* ---------- events ---------- */
+/* ---------- interactions ---------- */
 document.addEventListener("click", function(e){
   var t = e.target;
-  if (t.classList && t.classList.contains("tab")) {
-    document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("on"); });
-    t.classList.add("on");
+  var tab = t.closest && t.closest(".tab");
+  if (tab) {
+    document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", "false"); });
+    tab.setAttribute("aria-selected", "true");
     ["dash","cal","cov","avail","audit","help"].forEach(function(k){
-      $("t-"+k).classList.toggle("hidden", k !== t.dataset.t);
+      $("t-"+k).classList.toggle("hidden", k !== tab.dataset.t);
     });
+    $("t-" + tab.dataset.t).focus();
+    return;
   }
-  if (t.classList && t.classList.contains("fbtn")) { FILTER = t.dataset.f; renderCov(); }
-  if (t.classList && t.classList.contains("cal-nav") && !t.disabled) {
+
+  var fb = t.closest && t.closest(".fbtn");
+  if (fb) { FILTER = fb.dataset.f; renderCov(); return; }
+
+  var nav = t.closest && t.closest("[data-mo]");
+  if (nav && !nav.disabled) {
     var months = monthList(), i = months.indexOf(CAL_MONTH);
-    CAL_MONTH = months[t.dataset.mo === "prev" ? i - 1 : i + 1] || CAL_MONTH;
+    CAL_MONTH = months[nav.dataset.mo === "prev" ? i - 1 : i + 1] || CAL_MONTH;
     CAL_DAY = null;
     renderCal();
+    return;
   }
-  // a day-block in the calendar opens that day's events underneath the grid
-  var ce = t.closest ? t.closest(".ce") : null;
-  if (ce && ce.dataset.day) {
-    CAL_DAY = (CAL_DAY === ce.dataset.day) ? null : ce.dataset.day;
+
+  var day = t.closest && t.closest(".day");
+  if (day && day.dataset.day && !day.disabled) {
+    CAL_DAY = (CAL_DAY === day.dataset.day) ? null : day.dataset.day;
     renderCal();
     var panel = document.querySelector(".cal-detail");
-    if (panel) panel.scrollIntoView({ block: "nearest" });
+    if (panel) panel.scrollIntoView({ block:"nearest", behavior:"smooth" });
+    return;
   }
-  if (t.classList && t.classList.contains("chip") && t.dataset.ev && !t.disabled) {
-    var on = t.dataset.on === "1";
-    // Taking a name OFF an event that is currently covered leaves a hole, and
-    // everyone else finds out. Make that consequence explicit first.
+
+  var chip = t.closest && t.closest(".chip");
+  if (chip && chip.dataset.ev && !chip.disabled) {
+    var on = chip.getAttribute("aria-pressed") === "true";
+    // Coming off an event that is currently covered leaves a hole, and everyone
+    // else finds out. Make that consequence explicit first.
     if (on) {
-      var ev = S.events.find(function(e){ return e.id === +t.dataset.ev; });
+      var ev = S.events.find(function(x){ return x.id === +chip.dataset.ev; });
       if (ev && counts(ev) <= ev.min_needed) {
-        var whose = (+t.dataset.p === (ME && ME.id)) ? "your name" : "this name";
+        var whose = (+chip.dataset.p === (ME && ME.id)) ? "your name" : "this name";
         var msg = "This event is currently covered.\n\n" +
           fmtDate(ev.date) + " · " + (ev.time_label || "") + " — " + ev.detail + "\n\n" +
-          "If you take " + whose + " off, it drops to " +
-          (counts(ev) - 1) + "/" + ev.min_needed +
+          "If you take " + whose + " off, it drops to " + (counts(ev) - 1) + "/" + ev.min_needed +
           " and everyone else is told straight away that it needs someone urgently.\n\n" +
           "Only do this if you genuinely can't be there. Remove anyway?";
         if (!confirm(msg)) return;
       }
     }
-    t.disabled = true;
-    post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on})
+    chip.disabled = true; chip.classList.add("pending");
+    post({action:"toggle", event_id:+chip.dataset.ev, person_id:+chip.dataset.p, on:!on})
       .then(function(r){
-        if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
-        else if (r.error === "bad_code") { lock("Your PIN no longer works — ask Lens."); }
-        else if (r.error === "not_allowed") { t.disabled = false; alert("Only Lens can change someone else's name."); }
-        else { t.disabled = false; }
+        if (r.ok) {
+          S = r.state; ME = r.me || ME; renderAll();
+          toast(on ? "Removed — everyone has been told it needs someone." : "You're on. Thanks.");
+        } else if (r.error === "bad_code") { lock("Your PIN no longer works — ask Lens.");
+        } else {
+          chip.disabled = false; chip.classList.remove("pending");
+          toast(r.error === "not_allowed" ? "Only Lens can change someone else's name."
+                                          : "That didn't save. Try again.");
+        }
       })
-      .catch(function(){ t.disabled = false; });
+      .catch(function(){
+        chip.disabled = false; chip.classList.remove("pending");
+        toast("No connection — nothing was saved.");
+      });
+    return;
   }
-  if (t.id === "switch") { localStorage.removeItem("mt_code"); ME = null; S = null; lock(); }
 
-  // ---- availability controls ----
-  if (t.dataset && t.dataset.avWho) { AV_WHO = +t.dataset.avWho; renderAvail(); }
-  if (t.classList && t.classList.contains("av-cell") && !t.disabled) {
-    t.disabled = true;
-    post({action:"weekly", person_id:AV_WHO, weekday:+t.dataset.avWd,
-          slot:t.dataset.avSlot, on:t.dataset.avOn !== "1"})
+  if (t.closest && t.closest("#switch")) {
+    localStorage.removeItem("mt_code"); ME = null; S = null; lock(); return;
+  }
+
+  var avWho = t.closest && t.closest("[data-av-who]");
+  if (avWho) { AV_WHO = +avWho.dataset.avWho; renderAvail(); return; }
+
+  var cell = t.closest && t.closest(".av-cell");
+  if (cell && !cell.disabled) {
+    var busy = cell.getAttribute("aria-pressed") === "true";
+    cell.disabled = true;
+    post({action:"weekly", person_id:AV_WHO, weekday:+cell.dataset.avWd,
+          slot:cell.dataset.avSlot, on:!busy})
       .then(function(r){ if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
-                         else { t.disabled = false; } })
-      .catch(function(){ t.disabled = false; });
+                         else { cell.disabled = false; toast("That didn't save."); } })
+      .catch(function(){ cell.disabled = false; toast("No connection."); });
+    return;
   }
-  if (t.id === "bl-add") {
+
+  if (t.closest && t.closest("#bl-add")) {
     var d = $("bl-date").value;
-    if (!d) { return; }
+    if (!d) { toast("Pick a date first."); return; }
     post({action:"blackout", person_id:AV_WHO, date:d, on:true, note:$("bl-note").value.trim()})
-      .then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+      .then(function(r){ if (r.ok) { S = r.state; renderAll(); toast("Day off added."); } });
+    return;
   }
-  if (t.dataset && t.dataset.blDel) {
-    post({action:"blackout", person_id:AV_WHO, date:t.dataset.blDel, on:false})
-      .then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+  var del = t.closest && t.closest("[data-bl-del]");
+  if (del) {
+    post({action:"blackout", person_id:AV_WHO, date:del.dataset.blDel, on:false})
+      .then(function(r){ if (r.ok) { S = r.state; renderAll(); toast("Removed."); } });
   }
 });
 
-/* ---------- lock screen / boot ---------- */
+/* ---------- sign in / boot ---------- */
 function lock(msg){
   $("app").classList.add("hidden");
   $("lock").classList.remove("hidden");
@@ -752,28 +1084,28 @@ $("enter").onclick = function(){
   boot();
 };
 $("pass").addEventListener("keydown", function(e){ if (e.key === "Enter") $("enter").click(); });
+
 function boot(){
   post({action:"state"}).then(function(r){
     if (!r.ok) {
       localStorage.removeItem("mt_code");
       lock(r.error === "bad_code" ? "That PIN isn't recognised."
          : r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes."
-         : ("Error: " + r.error));
+         : "Something went wrong: " + r.error);
       return;
     }
     S = r.state; ME = r.me;
     $("lock").classList.add("hidden");
     $("app").classList.remove("hidden");
     renderAll();
-  }).catch(function(){ lock("Network error — try again."); });
+  }).catch(function(){ lock("No connection — try again."); });
 }
-setInterval(function(){
+function refresh(){
   if (!S || document.hidden) return;
-  post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
-}, 15000);
-document.addEventListener("visibilitychange", function(){
-  if (!document.hidden && S) post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
-});
+  post({action:"state"}).then(function(r){ if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); } });
+}
+setInterval(refresh, 15000);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
 if (myCode()) boot(); else lock();
 </script>
 </body>
