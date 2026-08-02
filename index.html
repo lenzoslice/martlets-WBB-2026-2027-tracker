@@ -528,14 +528,15 @@ function slotOf(ev){
 }
 function weekdayOf(dateStr){ return new Date(dateStr + 'T12:00:00').getDay(); }
 
-// Free = no blackout that date and no weekly conflict in that slot.
-function freeFor(ev){
+// Who has actually said they can't make this — a blackout on the date, or a
+// weekly block covering its time. We only ever report this direction: not
+// having blocked a slot is not the same as being available for it.
+function blockedFor(ev){
   var wd = weekdayOf(ev.date), sl = slotOf(ev);
   return S.people.filter(function(p){
-    var blocked = S.blackouts.some(function(b){ return b.person_id === p.id && b.date === ev.date; });
-    if (blocked) return false;
-    if (!sl) return true;                       // unknown time → can't judge
-    return !S.weekly.some(function(w){
+    if (S.blackouts.some(function(b){ return b.person_id === p.id && b.date === ev.date; })) return true;
+    if (!sl) return false;                      // unknown time → can't say
+    return S.weekly.some(function(w){
       return w.person_id === p.id && w.weekday === wd && w.slot === sl;
     });
   });
@@ -610,11 +611,16 @@ function eventRow(ev, interactive){
                  (ev.call_time ? '' : ' — 30 min before') + '</p>';
   if (ev.notes) h += '<p class="note">' + esc(ev.notes) + '</p>';
 
+  // Only stated unavailability is shown. Silence means nobody has blocked it,
+  // not that anyone is free.
   if (st === "uncovered" || st === "partial") {
-    var free = freeFor(ev).map(function(p){ return p.name; });
-    h += '<p class="av-free' + (free.length ? '' : ' none') + '">' +
-         (free.length ? 'Free that day: ' + esc(free.join(", "))
-                      : 'Nobody has marked themselves free') + '</p>';
+    var out = blockedFor(ev);
+    if (out.length === S.people.length) {
+      h += '<p class="av-free none">Everyone has marked themselves unavailable</p>';
+    } else if (out.length) {
+      h += '<p class="av-free">Not available: ' +
+           esc(out.map(function(p){ return p.name; }).join(", ")) + '</p>';
+    }
   }
 
   if (st !== "ctx" && interactive) {
@@ -899,13 +905,15 @@ function renderAvail(){
 
   var today = todayISO();
   var trouble = S.events.filter(function(e){
-    return e.min_needed > 0 && e.date >= today && status(e) !== 'covered' && freeFor(e).length === 0;
+    return e.min_needed > 0 && e.date >= today && status(e) !== 'covered' &&
+           blockedFor(e).length === S.people.length;
   });
-  h += '<h2 class="sec">Gaps nobody is free for</h2>';
+  h += '<h2 class="sec">Open slots everyone has blocked</h2>';
   if (!trouble.length) {
-    h += '<p class="muted">None — every open slot has at least one person available.</p>';
+    h += '<p class="muted">None — no open slot has been blocked by all four of you.</p>';
   } else {
-    h += '<p class="muted">These need a schedule conversation, not a reminder:</p>';
+    h += '<p class="muted">Every single person has marked themselves unavailable for these. ' +
+         'They need a schedule conversation, not a reminder:</p>';
     trouble.slice(0, 12).forEach(function(e){
       h += '<div class="listitem"><span>' + esc(fmtDate(e.date)) + ' · ' +
            esc(e.time_label) + ' — ' + esc(e.detail) + '</span></div>';
