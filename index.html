@@ -88,8 +88,9 @@ svg { display:block; }
 h1 { font-size:20px; letter-spacing:-.01em; }
 .idline { font-size:13px; color:var(--ink-3); margin:2px 0 var(--sp-3); }
 .linkbtn {
+  display:inline-flex; align-items:center; min-height:var(--tap);
   border:none; background:none; color:var(--brand); font-weight:600; font-size:13px;
-  padding:6px 4px; margin:-6px 0; cursor:pointer; border-radius:var(--r-sm);
+  padding:0 6px; margin:0 -6px; cursor:pointer; border-radius:var(--r-sm);
 }
 .linkbtn:hover { text-decoration:underline; }
 
@@ -204,7 +205,7 @@ p { margin:0 0 var(--sp-3); }
 /* ---------- filters ---------- */
 .filters { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin:var(--sp-4) 0 var(--sp-2); }
 .fbtn {
-  min-height:38px; padding:0 var(--sp-3);
+  min-height:var(--tap); padding:0 var(--sp-4);
   border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink-2);
   border-radius:var(--r-pill); font-size:13px; font-weight:600; cursor:pointer;
   transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -259,7 +260,7 @@ p { margin:0 0 var(--sp-3); }
 .day[aria-pressed="true"] { box-shadow:inset 0 0 0 2px var(--ink); }
 .day:not(.empty):not(.none):active { transform:scale(.96); }
 .dnum { font-size:13px; font-weight:700; line-height:1.1; }
-.day.today .dnum { color:var(--brand); }
+.day.today .dnum { color:var(--bad); }   /* darker than brand red: passes 4.5:1 at 13px */
 .dline { font-size:11px; line-height:1.25; color:var(--ink-2); overflow:hidden;
   text-overflow:ellipsis; white-space:nowrap; }
 .dcount { font-size:11px; font-weight:700; margin-top:auto; }
@@ -267,8 +268,7 @@ p { margin:0 0 var(--sp-3); }
 .day.st-partial   .dcount { color:var(--warn); }
 .day.st-covered   .dcount { color:var(--ok); }
 @media (max-width:400px) {
-  .day { min-height:56px; padding:4px 3px 5px; }
-  .dline, .dcount { font-size:10px; }
+  .day { min-height:58px; padding:4px 3px 5px; }
 }
 .legend { display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-4); margin-top:var(--sp-3); }
 .lg { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); }
@@ -281,11 +281,14 @@ p { margin:0 0 var(--sp-3); }
 .cal-detail h3 { font-size:16px; margin-bottom:var(--sp-2); }
 
 /* ---------- availability ---------- */
+/* Days as rows, time-of-day as columns: on a 375px screen this is the only
+   arrangement where every toggle clears 44x44. */
 .av-tbl { border-collapse:separate; border-spacing:var(--sp-1); width:100%; margin-left:-4px; }
-.av-tbl th { font-size:11px; font-weight:700; color:var(--ink-3); text-align:center; padding-bottom:2px; }
-.av-tbl th.slot, .av-tbl td.slot { text-align:left; white-space:nowrap; }
-.av-tbl td.slot { font-size:12px; color:var(--ink-2); padding-right:var(--sp-2); }
-.av-tbl td.slot b { display:block; font-size:13px; color:var(--ink); }
+.av-tbl th { font-size:11px; font-weight:700; color:var(--ink-3); text-align:center;
+  padding-bottom:2px; line-height:1.3; }
+.av-tbl th span { display:block; font-weight:400; font-size:10px; }
+.av-tbl th.day-h { text-align:left; font-size:13px; color:var(--ink); width:1%; white-space:nowrap;
+  padding-right:var(--sp-2); }
 .av-cell {
   display:grid; place-items:center; width:100%; min-height:46px;
   border:1.5px solid var(--line); background:var(--surface); color:var(--ink-3);
@@ -845,12 +848,14 @@ function renderAvail(){
     h += '</div>';
   }
 
-  h += '<div class="tblwrap"><table class="av-tbl"><thead><tr><th class="slot"></th>';
-  DAYS.forEach(function(d){ h += '<th scope="col">' + d + '</th>'; });
-  h += '</tr></thead><tbody>';
+  h += '<table class="av-tbl"><thead><tr><th class="day-h"></th>';
   SLOTS.forEach(function(s){
-    h += '<tr><th scope="row" class="slot"><b>' + s[1] + '</b>' + s[2] + '</th>';
-    for (var wd = 0; wd < 7; wd++) {
+    h += '<th scope="col">' + s[1] + '<span>' + s[2] + '</span></th>';
+  });
+  h += '</tr></thead><tbody>';
+  for (var wd = 0; wd < 7; wd++) {
+    h += '<tr><th scope="row" class="day-h">' + DAYS[wd] + '</th>';
+    SLOTS.forEach(function(s){
       var busy = S.weekly.some(function(w){
         return w.person_id === who.id && w.weekday === wd && w.slot === s[0];
       });
@@ -859,10 +864,10 @@ function renderAvail(){
            ' aria-label="' + DAYS_FULL[wd] + ' ' + s[1].toLowerCase() + ': ' +
            (busy ? 'unavailable' : 'available') + '">' +
            (busy ? SVG.cross : SVG.dot) + '</button></td>';
-    }
+    });
     h += '</tr>';
-  });
-  h += '</tbody></table></div>';
+  }
+  h += '</tbody></table>';
 
   h += '<h2 class="sec">Specific days off</h2><p class="muted">Exams, trips, anything one-off.</p>';
   if (editable) {
