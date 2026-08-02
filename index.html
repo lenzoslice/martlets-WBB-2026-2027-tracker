@@ -255,8 +255,8 @@ function renderDash(){
   var unc = need.filter(function(e){ return status(e)==="uncovered"; });
   var par = need.filter(function(e){ return status(e)==="partial"; });
   var cov = need.filter(function(e){ return status(e)==="covered"; });
-  var today = new Date().toISOString().slice(0,10);
-  var wk = new Date(Date.now() + 7*864e5).toISOString().slice(0,10);
+  var today = todayISO();
+  var wk = isoLocal(new Date(Date.now() + 7*864e5));
   var soon = need.filter(function(e){ return e.date >= today && e.date <= wk; });
   var soonBad = soon.filter(function(e){ return status(e)!=="covered"; });
 
@@ -338,7 +338,27 @@ function monthList(){
   });
   return out.sort();
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+// Local date, NOT toISOString() — that returns UTC, which rolls over to
+// tomorrow after 8pm in Montreal and highlights the wrong day.
+function isoLocal(d){
+  var p = function(n){ return n < 10 ? '0' + n : '' + n; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function todayISO(){ return isoLocal(new Date()); }
+
+// "2-4pm" → "2pm", "6:30-9am" → "6:30am": the start often carries no am/pm,
+// so borrow it from the end rather than showing a bare number.
+function startTime(ev){
+  var t = (ev.time_label || '').replace(' ⚠️', '').trim();
+  if (!t) return 'TBD';
+  var parts = t.split('-');
+  var start = parts[0].trim();
+  if (parts.length > 1 && !/am|pm/i.test(start)) {
+    var suffix = (parts[parts.length - 1].match(/am|pm/i) || [''])[0];
+    if (suffix) start += suffix.toLowerCase();
+  }
+  return start;
+}
 
 function shortLabel(ev){
   var s = ev.detail;
@@ -389,7 +409,7 @@ function renderCal(){
         h += '<span class="ce st-ctx">' + esc(shortLabel(e)) + '</span>';
       } else {
         h += '<button class="ce st-' + st + sel + '" data-day="' + iso + '">' +
-             '<b>' + esc(e.time_label ? e.time_label.split('-')[0].replace(' ⚠️','') : 'TBD') + '</b>' +
+             '<b>' + esc(startTime(e)) + '</b>' +
              esc(shortLabel(e)) +
              '<span class="ce-w">' + (initials(e) || '—') + ' ' + counts(e) + '/' + e.min_needed + '</span>' +
              '</button>';
