@@ -71,6 +71,41 @@ h2 { font-size:16px; margin:22px 0 8px; }
 .fbtn { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
   border-radius:99px; padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
 .fbtn.on { background:var(--ink); border-color:var(--ink); color:var(--bg); font-weight:bold; }
+/* ---- month calendar ---- */
+.cal-top { display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin:4px 0 10px; }
+.cal-top h2 { margin:0; font-size:17px; }
+.cal-nav { border:1.5px solid var(--line); background:var(--card); color:var(--ink);
+  border-radius:6px; width:38px; height:34px; font:inherit; font-size:16px; cursor:pointer; }
+.cal-nav:disabled { opacity:.3; cursor:default; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-h { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--sub);
+  text-align:center; padding-bottom:2px; font-weight:bold; }
+.cal-cell { min-height:74px; background:var(--card); border:1px solid var(--line);
+  border-radius:4px; padding:3px 3px 4px; overflow:hidden; }
+.cal-cell.blank { background:transparent; border-color:transparent; }
+.cal-cell.today { border-color:var(--red); border-width:2px; }
+.cal-daynum { font-size:11px; font-weight:bold; font-variant-numeric:tabular-nums;
+  color:var(--sub); }
+.cal-cell.today .cal-daynum { color:var(--red); }
+.ce { display:block; width:100%; text-align:left; border:none; border-left:3px solid var(--line);
+  border-radius:2px; padding:2px 3px; margin-top:2px; font:inherit; font-size:9.5px;
+  line-height:1.25; cursor:pointer; color:var(--ink); background:var(--gry-bg); }
+.ce.st-uncovered { background:var(--red-bg); border-left-color:var(--red); }
+.ce.st-partial   { background:var(--org-bg); border-left-color:var(--org); }
+.ce.st-covered   { background:var(--grn-bg); border-left-color:var(--grn); }
+.ce.st-ctx { color:var(--sub); cursor:default; }
+.ce.sel { box-shadow:0 0 0 2px var(--ink); }
+.ce b { display:block; font-size:9.5px; }
+.ce .ce-w { color:var(--sub); font-size:9px; }
+.cal-legend { font-size:11px; color:var(--sub); margin:10px 0 0; }
+.cal-detail { margin-top:12px; border-top:2px solid var(--ink); padding-top:8px; }
+.cal-detail h3 { font-size:14px; margin:0 0 4px; }
+@media (max-width:560px) {
+  .cal-cell { min-height:58px; padding:2px; }
+  .ce { font-size:8.5px; padding:1px 2px; }
+  .ce .ce-w { font-size:8px; }
+}
 .audit-item { border-bottom:1px solid var(--line); padding:8px 2px; font-size:13px; }
 .audit-item.bad { background:var(--red-bg); border-left:4px solid var(--red); padding-left:8px; }
 .audit-when { color:var(--sub); font-size:11px; }
@@ -116,11 +151,13 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
 </header>
 <div class="tabs">
   <button class="tab on" data-t="dash">Dashboard</button>
-  <button class="tab" data-t="cov">Coverage</button>
+  <button class="tab" data-t="cal">Calendar</button>
+  <button class="tab" data-t="cov">List</button>
   <button class="tab" data-t="audit">Audit log</button>
   <button class="tab" data-t="help">Help</button>
 </div>
 <div id="t-dash"></div>
+<div id="t-cal" class="hidden"></div>
 <div id="t-cov" class="hidden"></div>
 <div id="t-audit" class="hidden"></div>
 <div id="t-help" class="hidden help"></div>
@@ -289,6 +326,92 @@ function renderCov(){
   $("t-cov").innerHTML = h;
 }
 
+/* ---------- month calendar ---------- */
+var CAL_MONTH = null;   // "YYYY-MM"
+var CAL_DAY = null;     // selected date, drives the detail panel
+
+function monthList(){
+  var out = [];
+  S.events.forEach(function(e){
+    var m = monthKey(e.date);
+    if (out.indexOf(m) === -1) out.push(m);
+  });
+  return out.sort();
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function shortLabel(ev){
+  var s = ev.detail;
+  s = s.replace(/^Game\s+/, '');                       // "Game vs Laval" → "vs Laval"
+  s = s.replace(/^Sport Physiotherapy Training Weekend/, 'Training');
+  s = s.replace(/^Pre-Season Medicals.*/, 'Medicals');
+  s = s.split(' — ')[0].split(' (')[0];
+  return s.length > 20 ? s.slice(0, 19) + '…' : s;
+}
+function initials(ev){
+  return whoOn(ev).map(function(n){ return n.charAt(0); }).join(' ');
+}
+
+function renderCal(){
+  var months = monthList();
+  if (!months.length) { $("t-cal").innerHTML = '<p class="note">No events yet.</p>'; return; }
+  if (!CAL_MONTH || months.indexOf(CAL_MONTH) === -1) {
+    var tm = todayISO().slice(0,7);
+    CAL_MONTH = months.indexOf(tm) !== -1 ? tm : months[0];
+  }
+  var idx = months.indexOf(CAL_MONTH);
+  var y = +CAL_MONTH.slice(0,4), m = +CAL_MONTH.slice(5,7);
+  var first = new Date(y, m - 1, 1);
+  var daysInMonth = new Date(y, m, 0).getDate();
+  var lead = first.getDay();                            // 0 = Sunday
+
+  var h = '<div class="cal-top">' +
+    '<button class="cal-nav" data-mo="prev"' + (idx === 0 ? ' disabled' : '') + ' aria-label="Previous month">‹</button>' +
+    '<h2>' + first.toLocaleDateString("en-CA", {month:"long", year:"numeric"}) + '</h2>' +
+    '<button class="cal-nav" data-mo="next"' + (idx === months.length - 1 ? ' disabled' : '') + ' aria-label="Next month">›</button>' +
+    '</div><div class="cal-grid">';
+
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(function(d){
+    h += '<div class="cal-h">' + d + '</div>';
+  });
+  for (var i = 0; i < lead; i++) h += '<div class="cal-cell blank"></div>';
+
+  var today = todayISO();
+  for (var day = 1; day <= daysInMonth; day++) {
+    var iso = CAL_MONTH + '-' + (day < 10 ? '0' + day : day);
+    var evs = S.events.filter(function(e){ return e.date === iso; });
+    h += '<div class="cal-cell' + (iso === today ? ' today' : '') + '">' +
+         '<span class="cal-daynum">' + day + '</span>';
+    evs.forEach(function(e){
+      var st = status(e);
+      var sel = (CAL_DAY === iso) ? ' sel' : '';
+      if (st === "ctx") {
+        h += '<span class="ce st-ctx">' + esc(shortLabel(e)) + '</span>';
+      } else {
+        h += '<button class="ce st-' + st + sel + '" data-day="' + iso + '">' +
+             '<b>' + esc(e.time_label ? e.time_label.split('-')[0].replace(' ⚠️','') : 'TBD') + '</b>' +
+             esc(shortLabel(e)) +
+             '<span class="ce-w">' + (initials(e) || '—') + ' ' + counts(e) + '/' + e.min_needed + '</span>' +
+             '</button>';
+      }
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  h += '<p class="cal-legend">Tap any coloured block to sign up. ' +
+       'Red = nobody · orange = below minimum · green = covered · grey = no coverage needed.</p>';
+
+  if (CAL_DAY) {
+    var dayEvs = S.events.filter(function(e){ return e.date === CAL_DAY; });
+    if (dayEvs.length) {
+      h += '<div class="cal-detail"><h3>' + esc(fmtDate(CAL_DAY)) + '</h3>';
+      dayEvs.forEach(function(e){ h += eventRow(e, true); });
+      h += '</div>';
+    }
+  }
+  $("t-cal").innerHTML = h;
+}
+
 function when(iso){
   return new Date(iso).toLocaleString("en-CA",
     {timeZone:"America/Toronto", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
@@ -310,6 +433,7 @@ function renderAudit(){
 function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
+    '<li>Two ways to look at the season: <b>Calendar</b> shows a whole month at a glance — tap any coloured block to open that day and sign up. <b>List</b> shows everything in order with filters.</li>' +
     '<li>Tap your own name on an event to sign up; tap again to remove yourself. Other people’s names are locked — only Lens can move those.</li>' +
     '<li>Your PIN is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
     '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
@@ -325,7 +449,7 @@ function renderHelp(){
 
 function renderAll(){
   if (!S) return;
-  renderDash(); renderCov(); renderAudit(); renderHelp();
+  renderDash(); renderCal(); renderCov(); renderAudit(); renderHelp();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
@@ -336,11 +460,25 @@ document.addEventListener("click", function(e){
   if (t.classList && t.classList.contains("tab")) {
     document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("on"); });
     t.classList.add("on");
-    ["dash","cov","audit","help"].forEach(function(k){
+    ["dash","cal","cov","audit","help"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== t.dataset.t);
     });
   }
   if (t.classList && t.classList.contains("fbtn")) { FILTER = t.dataset.f; renderCov(); }
+  if (t.classList && t.classList.contains("cal-nav") && !t.disabled) {
+    var months = monthList(), i = months.indexOf(CAL_MONTH);
+    CAL_MONTH = months[t.dataset.mo === "prev" ? i - 1 : i + 1] || CAL_MONTH;
+    CAL_DAY = null;
+    renderCal();
+  }
+  // a day-block in the calendar opens that day's events underneath the grid
+  var ce = t.closest ? t.closest(".ce") : null;
+  if (ce && ce.dataset.day) {
+    CAL_DAY = (CAL_DAY === ce.dataset.day) ? null : ce.dataset.day;
+    renderCal();
+    var panel = document.querySelector(".cal-detail");
+    if (panel) panel.scrollIntoView({ block: "nearest" });
+  }
   if (t.classList && t.classList.contains("chip") && t.dataset.ev && !t.disabled) {
     var on = t.dataset.on === "1";
     t.disabled = true;
