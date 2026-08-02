@@ -71,6 +71,30 @@ h2 { font-size:16px; margin:22px 0 8px; }
 .fbtn { border:1.5px solid var(--line); background:var(--card); color:var(--sub);
   border-radius:99px; padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
 .fbtn.on { background:var(--ink); border-color:var(--ink); color:var(--bg); font-weight:bold; }
+/* ---- urgent banner + availability ---- */
+.urgent { background:var(--red); color:#fff; border-radius:6px; padding:11px 14px;
+  margin:10px 0; font-size:14px; }
+.urgent b { display:block; margin-bottom:3px; }
+.urgent ul { margin:4px 0 0; padding-left:18px; }
+.urgent li { margin:2px 0; }
+.av-tbl { border-collapse:collapse; width:100%; }
+.av-tbl th { font-size:10px; padding:4px 2px; text-align:center; }
+.av-tbl td { border:1px solid var(--line); padding:0; text-align:center; }
+.av-tbl td:first-child { text-align:left; padding:4px 6px; font-size:12px; white-space:nowrap; }
+.av-cell { width:100%; border:none; background:var(--card); color:var(--sub);
+  font:inherit; font-size:15px; padding:8px 0; cursor:pointer; display:block; }
+.av-cell.busy { background:var(--red-bg); color:var(--red); font-weight:bold; }
+.av-cell:disabled { cursor:default; opacity:.5; }
+.av-free { font-size:12px; color:var(--sub); margin-top:3px; }
+.av-free.none { color:var(--red); font-weight:bold; }
+.bl-row { display:flex; gap:6px; align-items:center; margin:6px 0; flex-wrap:wrap; }
+.bl-row input[type=date], .bl-row input[type=text] { font:inherit; font-size:14px; padding:6px;
+  border:1.5px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); }
+.bl-item { display:flex; justify-content:space-between; align-items:center; gap:8px;
+  border-bottom:1px solid var(--line); padding:6px 2px; font-size:13px; }
+.bl-item button { border:none; background:none; color:var(--red); font:inherit; cursor:pointer; }
+.mini { background:var(--card); border:1.5px solid var(--line); border-radius:6px; font:inherit;
+  font-size:13px; padding:6px 12px; cursor:pointer; color:var(--ink); }
 /* ---- month calendar ---- */
 .cal-top { display:flex; align-items:center; justify-content:space-between; gap:8px;
   margin:4px 0 10px; }
@@ -153,12 +177,15 @@ td.n { text-align:center; font-variant-numeric:tabular-nums; }
   <button class="tab on" data-t="dash">Dashboard</button>
   <button class="tab" data-t="cal">Calendar</button>
   <button class="tab" data-t="cov">List</button>
+  <button class="tab" data-t="avail">Availability</button>
   <button class="tab" data-t="audit">Audit log</button>
   <button class="tab" data-t="help">Help</button>
 </div>
+<div id="alertbar"></div>
 <div id="t-dash"></div>
 <div id="t-cal" class="hidden"></div>
 <div id="t-cov" class="hidden"></div>
+<div id="t-avail" class="hidden"></div>
 <div id="t-audit" class="hidden"></div>
 <div id="t-help" class="hidden help"></div>
 <p class="syncline" id="sync"></p>
@@ -197,6 +224,52 @@ function whoOn(ev){
   });
   return names;
 }
+/* ---------- times & availability ---------- */
+// "4-6pm" → 960 minutes. Returns null when the label isn't a real time.
+function startMinutes(ev){
+  var t = (ev.time_label || '').replace(/⚠️/g, '').trim();
+  var m = t.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (!m) return null;
+  var suffix = m[3] || (t.match(/(am|pm)/i) || [])[0] || '';
+  var h = +m[1], min = +(m[2] || 0);
+  if (!suffix) return null;
+  suffix = suffix.toLowerCase();
+  if (suffix === 'pm' && h !== 12) h += 12;
+  if (suffix === 'am' && h === 12) h = 0;
+  return h * 60 + min;
+}
+function fmtMinutes(v){
+  var h = Math.floor(v / 60), m = v % 60, s = h >= 12 ? 'pm' : 'am';
+  var hh = h % 12; if (hh === 0) hh = 12;
+  return hh + (m ? ':' + (m < 10 ? '0' + m : m) : '') + s;
+}
+// Practices: be there 30 minutes early. Games: whatever Lens sets.
+function callTime(ev){
+  if (ev.call_time) return ev.call_time;
+  if (ev.etype !== 'Practice') return '';
+  var s = startMinutes(ev);
+  return s === null ? '' : fmtMinutes(s - 30);
+}
+function slotOf(ev){
+  var s = startMinutes(ev);
+  if (s === null) return null;
+  return s < 12 * 60 ? 'morning' : (s < 17 * 60 ? 'afternoon' : 'evening');
+}
+function weekdayOf(dateStr){ return new Date(dateStr + 'T12:00:00').getDay(); }
+
+// Free = no blackout that date and no weekly conflict in that slot.
+function freeFor(ev){
+  var wd = weekdayOf(ev.date), sl = slotOf(ev);
+  return S.people.filter(function(p){
+    var blocked = S.blackouts.some(function(b){ return b.person_id === p.id && b.date === ev.date; });
+    if (blocked) return false;
+    if (!sl) return true;                       // unknown time → can't judge
+    return !S.weekly.some(function(w){
+      return w.person_id === p.id && w.weekday === wd && w.slot === sl;
+    });
+  });
+}
+
 function status(ev){
   if (ev.min_needed === 0) return "ctx";
   var n = counts(ev);
@@ -229,7 +302,16 @@ function eventRow(ev, interactive){
   h += badge(st);
   if (st !== "ctx") h += '<span class="cnt">' + counts(ev) + "/" + ev.min_needed + '</span>';
   h += '</div>';
+  var call = callTime(ev);
+  if (call) h += '<div class="note"><b>Be there ' + esc(call) + '</b>' +
+                 (ev.call_time ? '' : ' (30 min before)') + '</div>';
   if (ev.notes) h += '<div class="note">' + esc(ev.notes) + '</div>';
+  if (st === "uncovered" || st === "partial") {
+    var free = freeFor(ev).map(function(p){ return p.name; });
+    h += '<div class="av-free' + (free.length ? '' : ' none') + '">' +
+         (free.length ? 'Free that day: ' + esc(free.join(", ")) : 'Nobody has marked themselves free') +
+         '</div>';
+  }
   if (st !== "ctx" && interactive) {
     h += '<div class="chips">';
     S.people.forEach(function(p){
@@ -432,6 +514,105 @@ function renderCal(){
   $("t-cal").innerHTML = h;
 }
 
+/* ---------- availability tab ---------- */
+var AV_WHO = null;   // which person's availability is on screen (Lens may switch)
+
+var DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var SLOTS = [["morning","Morning","before noon"],
+             ["afternoon","Afternoon","12–5pm"],
+             ["evening","Evening","5pm on"]];
+
+function renderAvail(){
+  if (!ME) return;
+  if (AV_WHO === null || !S.people.some(function(p){ return p.id === AV_WHO; })) AV_WHO = ME.id;
+  var who = S.people.find(function(p){ return p.id === AV_WHO; }) || ME;
+  var mine = who.id === ME.id;
+  var editable = mine || ME.is_admin;
+
+  var h = '<h2>When ' + (mine ? 'you are' : esc(who.name) + ' is') + ' not available</h2>' +
+    '<p class="note">Tap a box for any time you normally <b>cannot</b> cover — classes, work, standing commitments. ' +
+    'Empty means available. This never signs you up for anything; it just shows Lens where the real gaps are.</p>';
+
+  if (ME.is_admin && S.people.length > 1) {
+    h += '<div class="chips" style="margin:8px 0">';
+    S.people.forEach(function(p){
+      h += '<button class="chip' + (p.id === AV_WHO ? ' on' : '') + '" data-av-who="' + p.id + '">' +
+           esc(p.name) + '</button>';
+    });
+    h += '</div>';
+  }
+
+  h += '<table class="av-tbl"><tr><th></th>';
+  DAYS.forEach(function(d){ h += '<th>' + d + '</th>'; });
+  h += '</tr>';
+  SLOTS.forEach(function(s){
+    h += '<tr><td><b>' + s[1] + '</b><br><span class="note">' + s[2] + '</span></td>';
+    for (var wd = 0; wd < 7; wd++) {
+      var busy = S.weekly.some(function(w){
+        return w.person_id === who.id && w.weekday === wd && w.slot === s[0];
+      });
+      h += '<td><button class="av-cell' + (busy ? ' busy' : '') + '"' +
+           (editable ? '' : ' disabled') +
+           ' data-av-wd="' + wd + '" data-av-slot="' + s[0] + '" data-av-on="' + (busy ? 1 : 0) + '">' +
+           (busy ? '✕' : '·') + '</button></td>';
+    }
+    h += '</tr>';
+  });
+  h += '</table>';
+
+  h += '<h2>Specific days off</h2>' +
+       '<p class="note">Exams, trips, anything one-off.</p>';
+  if (editable) {
+    h += '<div class="bl-row">' +
+         '<input type="date" id="bl-date" min="2026-08-01" max="2027-06-30">' +
+         '<input type="text" id="bl-note" placeholder="reason (optional)" maxlength="40">' +
+         '<button class="mini" id="bl-add">Add</button></div>';
+  }
+  var mineBl = S.blackouts.filter(function(b){ return b.person_id === who.id; })
+                          .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  if (!mineBl.length) h += '<p class="note">None yet.</p>';
+  mineBl.forEach(function(b){
+    h += '<div class="bl-item"><span>' + esc(fmtDate(b.date)) +
+         (b.note ? ' — ' + esc(b.note) : '') + '</span>' +
+         (editable ? '<button data-bl-del="' + b.date + '">remove</button>' : '') + '</div>';
+  });
+
+  // Where the roster is structurally short: uncovered events nobody is free for.
+  var today = todayISO();
+  var trouble = S.events.filter(function(e){
+    return e.min_needed > 0 && e.date >= today && status(e) !== 'covered' && freeFor(e).length === 0;
+  });
+  h += '<h2>Gaps nobody is free for</h2>';
+  if (!trouble.length) {
+    h += '<p class="note">None — every open slot has at least one person available.</p>';
+  } else {
+    h += '<p class="note">These need a schedule conversation, not a reminder:</p>';
+    trouble.slice(0, 12).forEach(function(e){
+      h += '<div class="bl-item"><span>' + esc(fmtDate(e.date)) + ' · ' +
+           esc(e.time_label) + ' — ' + esc(e.detail) + '</span></div>';
+    });
+    if (trouble.length > 12) h += '<p class="note">…and ' + (trouble.length - 12) + ' more.</p>';
+  }
+  $("t-avail").innerHTML = h;
+}
+
+/* ---------- urgent banner (visible on every tab) ---------- */
+function renderAlert(){
+  var today = todayISO();
+  var lost = S.audit.filter(function(a){
+    return a.action === 'removed' && a.covered_after < a.min_needed &&
+           (Date.now() - new Date(a.at).getTime()) < 48 * 3600 * 1000;
+  }).slice(0, 4);
+  if (!lost.length) { $("alertbar").innerHTML = ''; return; }
+  var h = '<div class="urgent"><b>⚠ Coverage was dropped — these need someone</b><ul>';
+  lost.forEach(function(a){
+    h += '<li>' + esc(a.event_label) + ' — now ' + a.covered_after + '/' + a.min_needed +
+         (a.covered_after === 0 ? ' (NOBODY)' : '') + ' · ' + esc(a.person) + ' came off</li>';
+  });
+  h += '</ul></div>';
+  $("alertbar").innerHTML = h;
+}
+
 function when(iso){
   return new Date(iso).toLocaleString("en-CA",
     {timeZone:"America/Toronto", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
@@ -457,7 +638,12 @@ function renderHelp(){
     '<li>Tap your own name on an event to sign up; tap again to remove yourself. Other people’s names are locked — only Lens can move those.</li>' +
     '<li>Your PIN is personal: it signs the audit log with your name, so don’t pass it around. Lost it? Lens can issue a new one.</li>' +
     '<li><b style="color:var(--red)">Red</b> = nobody covering · <b style="color:var(--org)">orange</b> = below the minimum · <b style="color:var(--grn)">green</b> = covered.</li>' +
-    '<li>Minimums: practice 1 · game 2 · medicals = everyone (5).</li>' +
+    '<li><b>Be there 30 minutes before a practice starts.</b> Games have their own arrival time shown on the event once Lens sets it.</li>' +
+    '<li>Minimums: practice 1 · game 2 · all-hands events (medicals, training, first practice) = everyone.</li>' +
+    '<li>Road trips (Ravens’ in Ottawa, TMU in Toronto) are one sign-up covering the whole trip, travel to return.</li>' +
+    '<li>We are not needed for shoot-arounds — just the game.</li>' +
+    '<li><b>Availability tab:</b> mark the times you normally can’t cover, and any one-off days off. It never signs you up; it shows Lens where the roster is genuinely short so gaps get solved early instead of the night before.</li>' +
+    '<li>Taking your name off something already covered asks you to confirm first, and tells everyone else immediately that it needs someone. Do it as early as you can.</li>' +
     '<li>Remove yourself as early as possible if you can’t make it — the audit log shows every change.</li>' +
     '<li>Judd * is standby until confirmed.</li>' +
     '<li>⚠️ marks unverified facts (opponents were read from calendar logos; game times TBD). Do not plan around ⚠️ items until confirmed.</li>' +
@@ -469,7 +655,7 @@ function renderHelp(){
 
 function renderAll(){
   if (!S) return;
-  renderDash(); renderCal(); renderCov(); renderAudit(); renderHelp();
+  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderAudit(); renderHelp();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
@@ -480,7 +666,7 @@ document.addEventListener("click", function(e){
   if (t.classList && t.classList.contains("tab")) {
     document.querySelectorAll(".tab").forEach(function(x){ x.classList.remove("on"); });
     t.classList.add("on");
-    ["dash","cal","cov","audit","help"].forEach(function(k){
+    ["dash","cal","cov","avail","audit","help"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== t.dataset.t);
     });
   }
@@ -501,6 +687,21 @@ document.addEventListener("click", function(e){
   }
   if (t.classList && t.classList.contains("chip") && t.dataset.ev && !t.disabled) {
     var on = t.dataset.on === "1";
+    // Taking a name OFF an event that is currently covered leaves a hole, and
+    // everyone else finds out. Make that consequence explicit first.
+    if (on) {
+      var ev = S.events.find(function(e){ return e.id === +t.dataset.ev; });
+      if (ev && counts(ev) <= ev.min_needed) {
+        var whose = (+t.dataset.p === (ME && ME.id)) ? "your name" : "this name";
+        var msg = "This event is currently covered.\n\n" +
+          fmtDate(ev.date) + " · " + (ev.time_label || "") + " — " + ev.detail + "\n\n" +
+          "If you take " + whose + " off, it drops to " +
+          (counts(ev) - 1) + "/" + ev.min_needed +
+          " and everyone else is told straight away that it needs someone urgently.\n\n" +
+          "Only do this if you genuinely can't be there. Remove anyway?";
+        if (!confirm(msg)) return;
+      }
+    }
     t.disabled = true;
     post({action:"toggle", event_id:+t.dataset.ev, person_id:+t.dataset.p, on:!on})
       .then(function(r){
@@ -512,6 +713,27 @@ document.addEventListener("click", function(e){
       .catch(function(){ t.disabled = false; });
   }
   if (t.id === "switch") { localStorage.removeItem("mt_code"); ME = null; S = null; lock(); }
+
+  // ---- availability controls ----
+  if (t.dataset && t.dataset.avWho) { AV_WHO = +t.dataset.avWho; renderAvail(); }
+  if (t.classList && t.classList.contains("av-cell") && !t.disabled) {
+    t.disabled = true;
+    post({action:"weekly", person_id:AV_WHO, weekday:+t.dataset.avWd,
+          slot:t.dataset.avSlot, on:t.dataset.avOn !== "1"})
+      .then(function(r){ if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
+                         else { t.disabled = false; } })
+      .catch(function(){ t.disabled = false; });
+  }
+  if (t.id === "bl-add") {
+    var d = $("bl-date").value;
+    if (!d) { return; }
+    post({action:"blackout", person_id:AV_WHO, date:d, on:true, note:$("bl-note").value.trim()})
+      .then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+  }
+  if (t.dataset && t.dataset.blDel) {
+    post({action:"blackout", person_id:AV_WHO, date:t.dataset.blDel, on:false})
+      .then(function(r){ if (r.ok) { S = r.state; renderAll(); } });
+  }
 });
 
 /* ---------- lock screen / boot ---------- */
