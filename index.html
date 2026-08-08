@@ -450,6 +450,9 @@ var API = "https://fdybcqdavyezdvxehlee.supabase.co/functions/v1/tracker/api";
 var S = null;               // server state
 var ME = null;              // who the server says I am — never self-declared
 var FILTER = "all";
+// Temporary pause requested by Lens (2026-08-07). Keep the alert code in
+// place so it can be restored without rebuilding the removal/audit flow.
+var LOST_COVERAGE_ALERTS_ENABLED = false;
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
@@ -925,6 +928,7 @@ function renderAvail(){
 
 /* ---------- alert ---------- */
 function renderAlert(){
+  if (!LOST_COVERAGE_ALERTS_ENABLED) { $("alertbar").innerHTML = ''; return; }
   var lost = S.audit.filter(function(a){
     return a.action === 'removed' && a.covered_after < a.min_needed &&
            (Date.now() - new Date(a.at).getTime()) < 48 * 3600 * 1000;
@@ -967,7 +971,7 @@ function renderHelp(){
     '<li>Road trips — Ravens’ in Ottawa, TMU in Toronto — are a single sign-up covering the whole trip, travel through return.</li>' +
     '<li>We are not needed for shoot-arounds, just the game.</li>' +
     '<li><b>Availability</b> is where you mark the times you can’t cover and any one-off days off. It never signs you up; it shows Lens where the roster is genuinely short, so gaps get solved early instead of the night before.</li>' +
-    '<li>Coming off something already covered asks you to confirm, then tells everyone immediately. Do it as early as you can.</li>' +
+    '<li>Coming off something already covered asks you to confirm because it may leave the event below its minimum. Do it as early as you can.</li>' +
     '<li>Your PIN is personal — it signs your name to every change. Lost it? Lens can issue a new one.</li>' +
     '<li>⚠️ in an event means that detail isn’t confirmed yet. Don’t plan around it.</li>' +
     '</ul>' +
@@ -1022,16 +1026,18 @@ document.addEventListener("click", function(e){
   var chip = t.closest && t.closest(".chip");
   if (chip && chip.dataset.ev && !chip.disabled) {
     var on = chip.getAttribute("aria-pressed") === "true";
-    // Coming off an event that is currently covered leaves a hole, and everyone
-    // else finds out. Make that consequence explicit first.
+    var removalLeavesGap = false;
+    // Coming off an event that is currently covered may leave a hole. Make that
+    // consequence explicit before saving the removal.
     if (on) {
       var ev = S.events.find(function(x){ return x.id === +chip.dataset.ev; });
       if (ev && counts(ev) <= ev.min_needed) {
+        removalLeavesGap = true;
         var whose = (+chip.dataset.p === (ME && ME.id)) ? "your name" : "this name";
         var msg = "This event is currently covered.\n\n" +
           fmtDate(ev.date) + " · " + (ev.time_label || "") + " — " + ev.detail + "\n\n" +
           "If you take " + whose + " off, it drops to " + (counts(ev) - 1) + "/" + ev.min_needed +
-          " and everyone else is told straight away that it needs someone urgently.\n\n" +
+          " and leaves the event below its coverage minimum.\n\n" +
           "Only do this if you genuinely can't be there. Remove anyway?";
         if (!confirm(msg)) return;
       }
@@ -1041,7 +1047,8 @@ document.addEventListener("click", function(e){
       .then(function(r){
         if (r.ok) {
           S = r.state; ME = r.me || ME; renderAll();
-          toast(on ? "Removed — everyone has been told it needs someone." : "You're on. Thanks.");
+          toast(on ? (removalLeavesGap ? "Removed. The event is now below its coverage minimum." : "Removed.")
+                   : "You're on. Thanks.");
         } else if (r.error === "bad_code") { lock("Your PIN no longer works — ask Lens.");
         } else {
           chip.disabled = false; chip.classList.remove("pending");
