@@ -348,6 +348,23 @@ table.data tr:last-child td { border-bottom:none; }
 table.data th.n, table.data td.n { text-align:right; width:74px; }
 table.data td.n { font-variant-numeric:tabular-nums; font-weight:600; }
 
+/* ---------- resources ---------- */
+a.btn { display:inline-flex; align-items:center; text-decoration:none; }
+.res-intro { font-size:14.5px; max-width:66ch; }
+.ther {
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r); padding:var(--sp-3) var(--sp-4); margin-top:var(--sp-2);
+  box-shadow:var(--shadow-1);
+}
+.ther .tdays {
+  font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--brand);
+}
+.ther .tname { font-size:16px; font-weight:700; margin-top:2px; }
+.ther .tmail { font-size:13px; color:var(--ink-2); word-break:break-all; margin-top:2px; }
+.ther .tmail a { color:inherit; }
+.res-actions { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-3); }
+
 /* ---------- help ---------- */
 .help h2 { font-size:17px; margin:var(--sp-5) 0 var(--sp-2); }
 .help ul { padding-left:20px; margin:0; }
@@ -424,6 +441,7 @@ table.data td.n { font-variant-numeric:tabular-nums; font-weight:600; }
         <button class="tab" role="tab" aria-selected="false" data-t="cal">Calendar</button>
         <button class="tab" role="tab" aria-selected="false" data-t="cov">List</button>
         <button class="tab" role="tab" aria-selected="false" data-t="avail">Availability</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="res">Resources</button>
         <button class="tab" role="tab" aria-selected="false" data-t="audit">Activity</button>
         <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
       </div>
@@ -436,6 +454,7 @@ table.data td.n { font-variant-numeric:tabular-nums; font-weight:600; }
     <div id="t-cal"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-cov"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-avail" role="tabpanel" tabindex="-1" class="hidden"></div>
+    <div id="t-res"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-audit" role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-help"  role="tabpanel" tabindex="-1" class="hidden help"></div>
     <p class="syncline" id="sync"></p>
@@ -960,6 +979,61 @@ function renderAudit(){
   $("t-audit").innerHTML = h;
 }
 
+/* ---------- resources ---------- */
+// Contact details arrive from the server after sign-in, same as the roster —
+// nothing personal is baked into this public file.
+function telHref(p){ return 'tel:+1' + String(p || '').replace(/\D/g, ''); }
+function smsHref(p){ return 'sms:+1' + String(p || '').replace(/\D/g, ''); }
+
+function renderRes(){
+  var R = S.resources;
+  if (!R) {
+    $("t-res").innerHTML = '<p class="muted" style="margin-top:16px">Resources haven’t been set up yet — ask Lens.</p>';
+    return;
+  }
+  var h = '<h2 class="sec">Emergency</h2>' +
+    '<div class="urgent">' + SVG.warn + '<div>' +
+    '<b>Need an ambulance? Call McGill Security</b>' +
+    '<p class="note" style="margin:4px 0 0">If you need to call an ambulance, you call Security. ' +
+    'Then call the clinic therapist on duty (below) and let them know what’s happening.</p>' +
+    '<div class="res-actions"><a class="btn primary" href="' + esc(telHref(R.security_phone)) + '">' +
+    'Call Security · ' + esc(R.security_phone || '') + '</a></div>' +
+    '</div></div>';
+
+  h += '<h2 class="sec">Player got hurt? Report it</h2>' +
+    '<p class="res-intro">Whenever a player gets hurt, whoever is covering fills out the injury ' +
+    'tracking form — every time.</p>';
+  if (R.injury_form_url) {
+    h += '<div class="res-actions" style="margin-top:8px"><a class="btn primary" href="' +
+         esc(R.injury_form_url) + '" target="_blank" rel="noopener">Open the injury tracking form</a></div>';
+  }
+
+  h += '<h2 class="sec">Winsor Clinic therapists</h2>' +
+    '<p class="res-intro">When you’re covering a practice and Lens isn’t there, a Winsor Clinic ' +
+    'therapist is on site on the days below — and there is <b>always someone on call</b> if you need help.</p>' +
+    '<ul style="padding-left:20px;margin:0 0 8px;font-size:14.5px">' +
+    '<li style="margin:6px 0"><b>Non-urgent</b> — text them. Someone will come by and triage; if they’re ' +
+    'on something more serious first, they will still get to you.</li>' +
+    '<li style="margin:6px 0"><b>Urgent</b> — call them.</li>' +
+    '<li style="margin:6px 0"><b>Emergency</b> — call and let them know right away.</li>' +
+    '<li style="margin:6px 0">Feel free to text them and introduce yourself — they’re here to help.</li>' +
+    '</ul>';
+
+  (R.therapists || []).forEach(function(t){
+    h += '<div class="ther">' +
+      '<div class="tdays">' + esc(t.days) + '</div>' +
+      '<div class="tname">' + esc(t.name) + '</div>' +
+      '<div class="tmail"><a href="mailto:' + esc(t.email) + '">' + esc(t.email) + '</a></div>' +
+      '<div class="res-actions">' +
+      '<a class="btn" href="' + esc(smsHref(t.phone)) + '">Text · ' + esc(t.phone) + '</a>' +
+      '<a class="btn" href="' + esc(telHref(t.phone)) + '">Call</a>' +
+      '</div></div>';
+  });
+
+  h += '<p class="stamp">Contacts and procedures provided by Lens · ' + esc(R.updated || '') + '</p>';
+  $("t-res").innerHTML = h;
+}
+
 function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
@@ -974,6 +1048,26 @@ function renderHelp(){
     '<li>Coming off something already covered asks you to confirm because it may leave the event below its minimum. Do it as early as you can.</li>' +
     '<li>Your PIN is personal — it signs your name to every change. Lost it? Lens can issue a new one.</li>' +
     '<li>⚠️ in an event means that detail isn’t confirmed yet. Don’t plan around it.</li>' +
+    '<li><b>Resources</b> has the injury tracking form, what to do when an ambulance is needed, and the Winsor Clinic therapists to reach on days Lens isn’t there.</li>' +
+    '</ul>' +
+    '<h2>Your Google Calendar</h2>' +
+    '<p>Anything you sign up for lands on your own calendar by itself, usually within five ' +
+    'minutes. Take your name off and it disappears again. Nothing to install and nothing to ' +
+    'connect — the invitation goes to the email Lens has on file for you, and it works the ' +
+    'same on Google, Outlook or Apple.</p>' +
+    '<ul>' +
+    '<li><b>The block is longer than the practice, on purpose.</b> A 11am–1pm practice is on ' +
+    'your calendar as <b>10:30–1:30</b>: 30 minutes early to be set up, 30 minutes after to ' +
+    'pack down. The real start time is in the title and the notes, every time.</li>' +
+    '<li>Games block from <b>an hour before tip-off</b> and run three and a half hours.</li>' +
+    '<li>Road trips show as all-day events across the whole trip.</li>' +
+    '<li>An event whose time isn’t confirmed yet shows as all-day with a ⚠️ rather than a ' +
+    'guessed time. It fixes itself once the time is set.</li>' +
+    '<li><b>Don’t edit these events in your calendar</b> — they’re rewritten from this app, so ' +
+    'any change you make there is overwritten. Change it here instead.</li>' +
+    '<li>Declining the invitation does <b>not</b> take you off the event. Only untapping your ' +
+    'name here does that.</li>' +
+    '<li>No email on file, or want it sent somewhere else? Tell Lens.</li>' +
     '</ul>' +
     '<h2>Schedule changes</h2>' +
     '<p>Only Lens edits the schedule itself. If a practice moves or a game is added it appears here automatically — the page refreshes on its own.</p>' +
@@ -983,7 +1077,7 @@ function renderHelp(){
 
 function renderAll(){
   if (!S) return;
-  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderAudit(); renderHelp();
+  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderRes(); renderAudit(); renderHelp();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
@@ -995,7 +1089,7 @@ document.addEventListener("click", function(e){
   if (tab) {
     document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", "false"); });
     tab.setAttribute("aria-selected", "true");
-    ["dash","cal","cov","avail","audit","help"].forEach(function(k){
+    ["dash","cal","cov","avail","res","audit","help"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== tab.dataset.t);
     });
     $("t-" + tab.dataset.t).focus({ preventScroll:true });
