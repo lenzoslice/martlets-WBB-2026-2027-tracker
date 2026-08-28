@@ -1030,6 +1030,18 @@ function renderRes(){
       '</div></div>';
   });
 
+  // Coordinator-only links: the server strips staff_links for non-admin PINs,
+  // so this section can only ever render for Lens.
+  if (ME && ME.is_admin && (R.staff_links || []).length) {
+    h += '<h2 class="sec">Coordinator links</h2>' +
+      '<p class="res-intro">Visible to you only.</p>';
+    R.staff_links.forEach(function(l){
+      h += '<div class="res-actions" style="margin-top:8px"><a class="btn" href="' +
+        esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.label) + '</a></div>';
+      if (l.note) h += '<p class="note" style="margin:4px 0 0">' + esc(l.note) + '</p>';
+    });
+  }
+
   h += '<p class="stamp">Contacts and procedures provided by Lens · ' + esc(R.updated || '') + '</p>';
   $("t-res").innerHTML = h;
 }
