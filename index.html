@@ -1008,6 +1008,18 @@ function renderRes(){
          esc(R.injury_form_url) + '" target="_blank" rel="noopener">Open the injury tracking form</a></div>';
   }
 
+  // Player status: a pointer to the team's SharePoint workbook. Only the link
+  // lives here — the content stays in McGill's system behind McGill logins.
+  if (R.player_status_url) {
+    h += '<h2 class="sec">Player status</h2>' +
+      '<p class="res-intro">Each player’s current playing status lives in the team’s ' +
+      'SharePoint workbook — always check it there, it’s kept up to date.</p>' +
+      '<div class="res-actions" style="margin-top:8px"><a class="btn primary" href="' +
+      esc(R.player_status_url) + '" target="_blank" rel="noopener">Open the player status list</a></div>' +
+      '<p class="note" style="margin:4px 0 0">Opens with your McGill login — if it says you ' +
+      'don’t have access, tell Lens.</p>';
+  }
+
   h += '<h2 class="sec">Winsor Clinic therapists</h2>' +
     '<p class="res-intro">When you’re covering a practice and Lens isn’t there, a Winsor Clinic ' +
     'therapist is on site on the days below — and there is <b>always someone on call</b> if you need help.</p>' +
