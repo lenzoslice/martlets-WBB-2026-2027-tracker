@@ -536,12 +536,21 @@ function fmtMinutes(v){
   var hh = h % 12; if (hh === 0) hh = 12;
   return hh + (m ? ':' + (m < 10 ? '0' + m : m) : '') + s;
 }
-// Practices: be there 30 minutes early. Games: whatever Lens sets.
+// Default arrival lead, in minutes. Practices: 30 minutes early. Home games:
+// 1h30 before tip-off (Lens, 2026-10-10). Away games and anything whose
+// location isn't confirmed get no default — Lens sets those per event.
+function arrivalLead(ev){
+  if (ev.etype === 'Practice') return 30;
+  if (ev.etype === 'Game' && ev.home_away === 'Home') return 90;
+  return null;
+}
+// A per-event call_time from Lens always wins over the default.
 function callTime(ev){
   if (ev.call_time) return ev.call_time;
-  if (ev.etype !== 'Practice') return '';
+  var lead = arrivalLead(ev);
+  if (lead === null) return '';
   var s = startMinutes(ev);
-  return s === null ? '' : fmtMinutes(s - 30);
+  return s === null ? '' : fmtMinutes(s - lead);
 }
 function slotOf(ev){
   var s = startMinutes(ev);
@@ -628,9 +637,9 @@ function eventRow(ev, interactive){
   if (st !== "ctx") h += '<span class="cnt tnum">' + counts(ev) + '/' + ev.min_needed + '</span>';
   h += '</div>';
 
-  var call = callTime(ev);
+  var call = callTime(ev), lead = ev.call_time ? null : arrivalLead(ev);
   if (call) h += '<p class="note"><b>Be there ' + esc(call) + '</b>' +
-                 (ev.call_time ? '' : ' — 30 min before') + '</p>';
+                 (lead === 90 ? ' — 1h30 before tip-off' : lead === 30 ? ' — 30 min before' : '') + '</p>';
   if (ev.notes) h += '<p class="note">' + esc(ev.notes) + '</p>';
 
   // Only stated unavailability is shown. Silence means nobody has blocked it,
@@ -1064,7 +1073,7 @@ function renderHelp(){
     '<li>Two views of the same season. <b>Calendar</b> shows a month at a glance — tap a day to open it. <b>List</b> runs in order with filters.</li>' +
     '<li>Tap your own name to sign up, tap again to come off. Other people’s names are locked; only Lens can move those.</li>' +
     '<li><b>Red</b> = nobody covering · <b>orange</b> = below the minimum · <b>green</b> = covered. Every colour also carries a written label.</li>' +
-    '<li><b>Be there 30 minutes before a practice starts.</b> Games show their own arrival time once Lens sets it.</li>' +
+    '<li><b>Be there 30 minutes before a practice starts, and 1h30 before tip-off for a home game.</b> Away games show their arrival time once Lens sets it.</li>' +
     '<li>Minimums: practice 1 · game 2 · all-hands events (medicals, training, first practice) = everyone.</li>' +
     '<li>Road trips — Ravens’ in Ottawa, TMU in Toronto — are a single sign-up covering the whole trip, travel through return.</li>' +
     '<li>We are not needed for shoot-arounds, just the game.</li>' +
