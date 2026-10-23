@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ED1B2F">
+<meta name="robots" content="noindex">
+<title>Martlets Injury Log</title>
+<style>
+/* Same design tokens as the coverage tracker (tools/tracker/index.html). */
+:root {
+  --brand:#ED1B2F;
+  --ok:#41701F;      --ok-tint:#EDF4E3;   --ok-line:#B9CF97;
+  --warn:#8F5115;    --warn-tint:#FBF0E3; --warn-line:#E0B584;
+  --bad:#C20E25;     --bad-tint:#FDEAEC;  --bad-line:#F0A7B0;
+  --bg:#FAFAF9;  --surface:#FFFFFF;  --raised:#FFFFFF;
+  --ink:#16181D; --ink-2:#4A525E;    --ink-3:#6B7480;
+  --line:#E5E4E1; --line-2:#D3D2CE;
+  --focus:#0B57D0;
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-pill:999px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px;
+  --shadow-1:0 1px 2px rgba(16,18,22,.06), 0 1px 1px rgba(16,18,22,.04);
+  --shadow-2:0 4px 16px rgba(16,18,22,.10);
+  --tap:44px;
+  --dur:180ms; --ease:cubic-bezier(.2,.7,.3,1);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand:#FF5266;
+    --ok:#A8CC72;      --ok-tint:#232A1A;   --ok-line:#42542A;
+    --warn:#E5A868;    --warn-tint:#2C2118; --warn-line:#5C4227;
+    --bad:#FF7285;     --bad-tint:#31161B;  --bad-line:#6B2B34;
+    --bg:#111214;  --surface:#1A1C20;  --raised:#212429;
+    --ink:#EFEFEE; --ink-2:#B7BEC7;    --ink-3:#8E97A2;
+    --line:#2B2F36; --line-2:#3A3F47;
+    --focus:#A8C7FA;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 6px 20px rgba(0,0,0,.5);
+  }
+}
+*, *::before, *::after { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body { margin:0; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-size:15px; line-height:1.5;
+  color:var(--ink); background:var(--bg); -webkit-font-smoothing:antialiased; }
+h1,h2,h3 { margin:0; line-height:1.25; text-wrap:balance; }
+button, input, select, textarea { font:inherit; color:inherit; }
+button { -webkit-tap-highlight-color:transparent; }
+svg { display:block; }
+:focus-visible { outline:3px solid var(--focus); outline-offset:2px; border-radius:var(--r-sm); }
+.wrap { max-width:780px; margin:0 auto; padding:0 var(--sp-4) calc(var(--sp-6) + env(safe-area-inset-bottom)); }
+.topbar { padding-top:env(safe-area-inset-top); }
+.topbar-in { max-width:780px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 0; }
+.brandline { display:flex; align-items:center; gap:var(--sp-2); font-size:11px; font-weight:700; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--brand); margin:0 0 2px; }
+.brandline::before { content:""; width:16px; height:3px; border-radius:2px; background:var(--brand); }
+h1 { font-size:20px; letter-spacing:-.01em; }
+.idline { font-size:13px; color:var(--ink-3); margin:2px 0 var(--sp-3); }
+.linkbtn { display:inline-flex; align-items:center; min-height:var(--tap); border:none; background:none; color:var(--brand);
+  font-weight:600; font-size:13px; padding:0 6px; margin:0 -6px; cursor:pointer; border-radius:var(--r-sm); }
+.linkbtn:hover { text-decoration:underline; }
+.tabs { position:sticky; top:0; z-index:40; display:flex; gap:var(--sp-1); overflow-x:auto; scrollbar-width:none;
+  margin:0 calc(var(--sp-4) * -1); padding:0 var(--sp-4); background:var(--bg); border-bottom:1px solid var(--line); }
+.tabs::-webkit-scrollbar { display:none; }
+.tab { flex:0 0 auto; min-height:var(--tap); padding:0 var(--sp-3); border:none; background:none; color:var(--ink-3);
+  font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; border-bottom:3px solid transparent;
+  transition:color var(--dur) var(--ease); }
+.tab[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--brand); }
+.tab:hover { color:var(--ink); }
+.card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow-1); }
+h2.sec { font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin:var(--sp-5) 0 var(--sp-2); }
+.muted { font-size:13px; color:var(--ink-3); }
+p { margin:0 0 var(--sp-3); }
+
+/* confidentiality reminder — on the lock screen and in the app */
+.notice { display:flex; gap:var(--sp-3); align-items:flex-start; background:var(--surface); border:1px solid var(--line-2);
+  border-left:4px solid var(--ink-3); border-radius:var(--r); padding:var(--sp-3) var(--sp-4); margin:var(--sp-4) 0 0; }
+.notice svg { flex:0 0 auto; width:20px; height:20px; color:var(--ink-3); margin-top:1px; }
+.notice b { display:block; font-size:14px; color:var(--ink); }
+.notice p { font-size:13px; color:var(--ink-2); margin:2px 0 0; }
+/* red alert — kept for errors */
+.urgent { display:flex; gap:var(--sp-3); align-items:flex-start; background:var(--bad-tint); border:1px solid var(--bad-line);
+  border-left:4px solid var(--bad); border-radius:var(--r); padding:var(--sp-3) var(--sp-4); margin:var(--sp-4) 0 0; }
+.urgent svg { flex:0 0 auto; width:20px; height:20px; color:var(--bad); margin-top:1px; }
+.urgent b { display:block; font-size:14px; color:var(--ink); }
+.urgent p { font-size:13px; color:var(--ink-2); margin:2px 0 0; }
+
+/* forms */
+.field { margin-top:var(--sp-3); }
+.field label { display:block; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); margin-bottom:4px; }
+.field label small { font-weight:400; text-transform:none; letter-spacing:0; color:var(--ink-3); }
+.field input, .field select, .field textarea { width:100%; min-height:var(--tap); padding:10px var(--sp-3); font-size:16px;
+  border:1.5px solid var(--line-2); border-radius:var(--r-sm); background:var(--surface); color:var(--ink); }
+.field textarea { resize:vertical; line-height:1.45; }
+.field textarea.big { min-height:220px; }
+.hint { font-size:13px; color:var(--ink-2); margin:6px 0 0; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+@media (max-width:480px) { .row2 { grid-template-columns:1fr; } }
+.actions { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-4); }
+.btn { min-height:var(--tap); padding:0 var(--sp-4); border-radius:var(--r-sm); border:1.5px solid var(--line-2);
+  background:var(--surface); color:var(--ink); font-size:14px; font-weight:600; cursor:pointer; transition:background var(--dur) var(--ease); }
+.btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+.btn:active { transform:scale(.98); }
+.btn:disabled { opacity:.5; cursor:progress; }
+.status { font-size:13.5px; margin-top:var(--sp-3); padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm);
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2); }
+.status.ok { background:var(--ok-tint); border-color:var(--ok-line); color:var(--ok); }
+.status.warn { background:var(--warn-tint); border-color:var(--warn-line); color:var(--warn); }
+.status.bad { background:var(--bad-tint); border-color:var(--bad-line); color:var(--bad); }
+
+/* log */
+.filters { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); margin:var(--sp-4) 0 var(--sp-2); }
+.filters .field { margin:0; }
+.filters .field input, .filters .field select { min-height:40px; font-size:14px; padding:6px var(--sp-2); }
+@media (max-width:480px) { .filters { grid-template-columns:1fr; } }
+.entry { background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--brand); border-radius:var(--r);
+  padding:var(--sp-3) var(--sp-4); margin-top:var(--sp-2); box-shadow:var(--shadow-1); }
+.etop { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-2) var(--sp-3); }
+.edate { font-size:14px; font-weight:700; white-space:nowrap; }
+.eath { flex:1 1 40%; font-size:15px; font-weight:700; }
+.eby { font-size:12.5px; color:var(--ink-3); white-space:nowrap; }
+.soap { margin:var(--sp-2) 0 0; padding:0; list-style:none; }
+.soap li { font-size:14px; margin:4px 0; color:var(--ink-2); }
+.soap li b { color:var(--ink); font-weight:700; }
+.soap li.empty { color:var(--ink-3); font-style:italic; }
+.eactions { display:flex; gap:var(--sp-2); margin-top:var(--sp-2); }
+.eactions .btn { min-height:36px; font-size:13px; }
+.badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; padding:3px 9px; border-radius:var(--r-pill); white-space:nowrap; border:1px solid var(--line-2); color:var(--ink-3); }
+
+/* help */
+.help h2 { font-size:17px; margin:var(--sp-5) 0 var(--sp-2); }
+.help ul { padding-left:20px; margin:0; }
+.help li { margin:var(--sp-2) 0; font-size:14.5px; }
+.help p { font-size:14.5px; max-width:66ch; }
+
+/* sign-in */
+#lock { max-width:420px; margin:0 auto; padding:8vh var(--sp-4) var(--sp-6); }
+#lock .card { padding:var(--sp-5); border-top:4px solid var(--brand); margin-top:var(--sp-4); }
+#lock h1 { font-size:22px; margin-bottom:var(--sp-1); }
+#lock input { width:100%; min-height:52px; padding:0 var(--sp-4); margin:var(--sp-4) 0 var(--sp-2); font-size:17px;
+  border:1.5px solid var(--line-2); border-radius:var(--r); background:var(--bg); color:var(--ink); }
+#lock .btn { width:100%; }
+.err { color:var(--bad); font-size:13.5px; min-height:20px; margin:var(--sp-2) 0 0; font-weight:600; }
+
+#toast { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(var(--sp-5) + env(safe-area-inset-bottom)); z-index:60;
+  max-width:min(520px, calc(100vw - 32px)); }
+.toast { background:var(--ink); color:var(--bg); border-radius:var(--r); padding:var(--sp-3) var(--sp-4); font-size:14px;
+  box-shadow:var(--shadow-2); animation:rise var(--dur) var(--ease); }
+@keyframes rise { from { opacity:0; transform:translateY(8px); } }
+.hidden { display:none !important; }
+.syncline { font-size:12px; color:var(--ink-3); text-align:right; margin:var(--sp-5) 0 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+</style>
+</head>
+<body>
+
+<!-- ============ sign in ============ -->
+<div id="lock" class="hidden">
+  <div class="notice" role="note" id="lock-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    <div><b>Confidential clinical log — team medical staff only</b>
+      <p>Never share screenshots or exports. Athlete names stay inside the app.</p></div>
+  </div>
+  <div class="card">
+    <p class="brandline">McGill Martlets W-Basketball</p>
+    <h1>Injury Log</h1>
+    <p class="muted" id="lockmsg">Enter your clinical passphrase. Lens gives you yours — it signs your name to every entry.</p>
+    <label for="pass" class="muted" style="font-weight:600">Passphrase</label>
+    <input id="pass" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false"
+           placeholder="at least 12 characters" aria-describedby="lockerr">
+    <button class="btn primary" id="enter">Sign in</button>
+    <p class="err" id="lockerr" role="alert"></p>
+  </div>
+</div>
+
+<!-- ============ app ============ -->
+<div id="app" class="hidden">
+  <header class="topbar">
+    <div class="topbar-in">
+      <p class="brandline">McGill Martlets Women's Basketball</p>
+      <h1>Injury Log — 2026-27</h1>
+      <p class="idline">Signed in as <b id="whoami"></b> ·
+        <button class="linkbtn" id="switch">Sign out</button></p>
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button class="tab" role="tab" aria-selected="true"  data-t="new">New entry</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="log">Log</button>
+        <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="notice" role="note" id="app-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      <div><b>Confidential — team medical staff only</b>
+        <p>Never share screenshots or exports; athlete names stay inside the app. When dictating, never say a name — say "the athlete".</p></div>
+    </div>
+
+    <!-- ---- New entry ---- -->
+    <div id="t-new" role="tabpanel" tabindex="-1">
+      <section id="step-dictate">
+        <h2 class="sec">1 · Dictate or type the note</h2>
+        <div class="row2">
+          <div class="field"><label for="n-athlete">Athlete</label><select id="n-athlete"></select></div>
+          <div class="field"><label for="n-when">Date &amp; time</label><input id="n-when" type="datetime-local"></div>
+        </div>
+        <div class="field">
+          <label for="n-text">Note <small>— English or French</small></label>
+          <textarea id="n-text" class="big" placeholder="Tap the microphone key on your phone keyboard and talk. What happened, what you found, what you think, what you did."></textarea>
+          <p class="hint">Dictation stays on your phone (keyboard microphone). Say <b>"the athlete"</b>, never a name — the athlete is chosen above and is never sent with the text.</p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="n-structure">Structure into SOAP</button>
+          <button class="btn" id="n-manual">Fill in the fields myself</button>
+        </div>
+        <div id="n-status" class="status hidden" aria-live="polite"></div>
+      </section>
+
+      <section id="step-review" class="hidden">
+        <h2 class="sec" id="r-title">2 · Review before saving</h2>
+        <div id="r-status" class="status" aria-live="polite"></div>
+        <div class="row2">
+          <div class="field"><label for="r-athlete">Athlete</label><select id="r-athlete"></select></div>
+          <div class="field"><label for="r-when">Date &amp; time</label><input id="r-when" type="datetime-local"></div>
+        </div>
+        <div class="field"><label for="r-event">(S) Description of event</label><textarea id="r-event" rows="3"></textarea></div>
+        <div class="field"><label for="r-findings">(O) Findings</label><textarea id="r-findings" rows="3"></textarea></div>
+        <div class="field"><label for="r-assessment">(A) Assessment</label><textarea id="r-assessment" rows="3"></textarea></div>
+        <div class="field"><label for="r-plan">(P/I) Plan / intervention</label><textarea id="r-plan" rows="3"></textarea></div>
+        <div class="field"><label for="r-notes">Notes</label><textarea id="r-notes" rows="3"></textarea></div>
+        <div class="actions">
+          <button class="btn primary" id="r-save">Save entry</button>
+          <button class="btn" id="r-back">Back</button>
+        </div>
+        <input type="hidden" id="r-id" value="">
+      </section>
+    </div>
+
+    <!-- ---- Log ---- -->
+    <div id="t-log" role="tabpanel" tabindex="-1" class="hidden"></div>
+
+    <!-- ---- Help ---- -->
+    <div id="t-help" role="tabpanel" tabindex="-1" class="hidden help"></div>
+    <p class="syncline" id="sync"></p>
+  </main>
+</div>
+
+<div id="toast" aria-live="assertive"></div>
+
+<script>
+"use strict";
+// Same Supabase project as the tracker, separate `injury` schema; the anon key
+// is public by design — every il_* RPC checks the passphrase server-side.
+var SB   = "https://fdybcqdavyezdvxehlee.supabase.co";
+var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkeWJjcWRhdnllemR2eGVobGVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1OTg4MDMsImV4cCI6MjEwMTE3NDgwM30.OS_jRNaQR8Qh0x0yW-WBZZhkd2gGbwxMP1a_rYiBNqo";
+var FN   = SB + "/functions/v1/injury_structure";
+
+var S = null;      // server state
+var ME = null;     // who the server says I am
+var F = { athlete:"all", from:"", to:"", q:"" };
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
+// sessionStorage, not localStorage: the passphrase is gone when the tab closes.
+function myPass(){ try { return sessionStorage.getItem("il_pass") || ""; } catch(e){ return ""; } }
+function setPass(v){ try { if (v) sessionStorage.setItem("il_pass", v); else sessionStorage.removeItem("il_pass"); } catch(e){} }
+
+function rpc(name, args){
+  args = args || {}; args.p_pass = myPass();
+  return fetch(SB + "/rest/v1/rpc/" + name, { method:"POST",
+    headers:{ "Content-Type":"application/json", "apikey":ANON, "Authorization":"Bearer " + ANON },
+    body: JSON.stringify(args) }).then(function(r){ return r.json(); });
+}
+function toast(msg){
+  var box = $("toast"); box.innerHTML = '<div class="toast">' + esc(msg) + '</div>';
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ box.innerHTML = ''; }, 4000);
+}
+function setStatus(el, cls, msg){ el.className = "status " + cls; el.textContent = msg; el.classList.remove("hidden"); }
+
+/* ---------- helpers ---------- */
+function athleteName(id){ var a = (S.athletes||[]).find(function(x){ return x.id === id; }); return a ? a.display_name : "Athlete ?"; }
+function personName(id){ var p = (S.people||[]).find(function(x){ return x.id === id; }); return p ? p.name : "?"; }
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+function toLocalInput(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes()); }
+function fromLocalInput(v){ var d = v ? new Date(v) : new Date(); return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString(); }
+function when(iso){ return new Date(iso).toLocaleString("en-CA", {timeZone:"America/Toronto", year:"numeric", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); }
+function dateOnly(iso){ return new Date(iso).toLocaleDateString("en-CA", {timeZone:"America/Toronto"}); }
+function canEdit(e){ return !!ME && (ME.is_admin || e.author_person_id === ME.id); }
+
+function fillAthletes(sel, chosen){
+  var h = '';
+  (S.athletes||[]).filter(function(a){ return a.active; }).forEach(function(a){
+    h += '<option value="' + a.id + '"' + (a.id === chosen ? ' selected' : '') + '>' + esc(a.display_name) + '</option>';
+  });
+  sel.innerHTML = h;
+}
+
+// De-identify before anything leaves the phone for the structuring call:
+// every known athlete code / display name and every known person name is
+// replaced, as are emails and phone numbers. The dropdown choice is never sent.
+function deidentify(text){
+  var t = String(text || "");
+  (S.athletes||[]).forEach(function(a){
+    t = t.replace(new RegExp("\\b" + a.display_name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the athlete");
+  });
+  (S.people||[]).forEach(function(p){
+    var n = p.name.replace(/\s*\(.*?\)\s*/g, "").trim();
+    if (n.length >= 3) t = t.replace(new RegExp("\\b" + n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the clinician");
+  });
+  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]");
+  t = t.replace(/(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, "[phone]");
+  return t;
+}
+
+/* ---------- new entry ---------- */
+function resetNew(){
+  fillAthletes($("n-athlete"), null);
+  $("n-when").value = toLocalInput(new Date());
+  $("n-text").value = "";
+  $("n-status").classList.add("hidden");
+  $("step-review").classList.add("hidden");
+  $("step-dictate").classList.remove("hidden");
+}
+function openReview(opts){
+  // opts: {id, athlete_id, when(local input), fields, mode:"ai"|"raw"|"manual"|"edit"}
+  $("r-id").value = opts.id || "";
+  fillAthletes($("r-athlete"), opts.athlete_id);
+  $("r-when").value = opts.when;
+  var f = opts.fields || {};
+  $("r-event").value = f.event_description || "";
+  $("r-findings").value = f.findings || "";
+  $("r-assessment").value = f.assessment || "";
+  $("r-plan").value = f.plan || "";
+  $("r-notes").value = f.notes || "";
+  $("r-title").textContent = opts.mode === "edit" ? "Edit entry" : "2 · Review before saving";
+  var st = $("r-status");
+  if (opts.mode === "ai")      setStatus(st, "ok",   "Structured by AI from your note. Read every field — fix anything wrong before saving. Nothing is saved yet.");
+  else if (opts.mode === "raw") setStatus(st, "warn", opts.why || "Structuring isn't available right now — your note is in Notes. Sort it into the fields yourself, or save as is.");
+  else if (opts.mode === "edit") setStatus(st, "",   "Every change is recorded in the audit trail with your name.");
+  else                          setStatus(st, "",   "Fill in what you have. Empty fields are fine.");
+  $("step-dictate").classList.add("hidden");
+  $("step-review").classList.remove("hidden");
+  $("r-event").focus({preventScroll:true});
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function structure(){
+  var raw = $("n-text").value.trim();
+  if (!raw) { setStatus($("n-status"), "bad", "Dictate or type something first."); return; }
+  var athlete_id = +$("n-athlete").value, whenV = $("n-when").value;
+  var text = deidentify(raw);
+  var btn = $("n-structure"); btn.disabled = true; $("n-manual").disabled = true;
+  setStatus($("n-status"), "", "Structuring… the athlete is not sent, only the note.");
+  // Only {pass, text}. No athlete, no id, no name.
+  fetch(FN, { method:"POST", headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ pass: myPass(), text: text }) })
+    .then(function(r){ return r.json().then(function(j){ j._status = r.status; return j; }); })
+    .then(function(r){
+      btn.disabled = false; $("n-manual").disabled = false;
+      if (r.ok && r.fields) {
+        openReview({ athlete_id: athlete_id, when: whenV, fields: r.fields, mode:"ai" });
+      } else if (r.error === "bad_pass" || r.error === "locked_out") {
+        lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your passphrase no longer works — ask Lens.");
+      } else {
+        var why = r.error === "no_api_key"
+          ? "AI structuring isn't set up on the server yet — your note is in Notes. Sort it into the fields yourself, or save as is."
+          : r.error === "refused" ? "The AI declined to process this note. Your note is in Notes — sort it yourself."
+          : r.error === "text_too_long" ? "That note is too long for structuring (6,000 characters max). It's in Notes — split it or sort it yourself."
+          : "Structuring failed (" + (r.error || r._status) + "). Your note is in Notes — sort it yourself, or try again.";
+        openReview({ athlete_id: athlete_id, when: whenV, fields: { notes: raw }, mode:"raw", why: why });
+      }
+    })
+    .catch(function(){
+      btn.disabled = false; $("n-manual").disabled = false;
+      openReview({ athlete_id: athlete_id, when: whenV, fields: { notes: raw }, mode:"raw",
+        why: "No connection to the structuring service. Your note is in Notes — sort it yourself, or save as is." });
+    });
+}
+
+function save(){
+  var id = $("r-id").value ? +$("r-id").value : null;
+  var args = {
+    p_id: id,
+    p_athlete_id: +$("r-athlete").value,
+    p_logged_at: fromLocalInput($("r-when").value),
+    p_event: $("r-event").value, p_findings: $("r-findings").value, p_assessment: $("r-assessment").value,
+    p_plan: $("r-plan").value, p_notes: $("r-notes").value
+  };
+  var btn = $("r-save"); btn.disabled = true;
+  rpc("il_save", args).then(function(r){
+    btn.disabled = false;
+    if (r.ok) {
+      S = r; ME = r.me || ME; renderAll();
+      toast(id ? "Entry updated." : "Entry saved.");
+      resetNew(); showTab("log");
+    } else if (r.error === "bad_pass" || r.error === "locked_out") {
+      lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your passphrase no longer works — ask Lens.");
+    } else {
+      setStatus($("r-status"), "bad", r.error === "empty" ? "Nothing to save — fill in at least one field."
+        : r.error === "forbidden" ? "Only the author or Lens can edit this entry."
+        : "That didn't save (" + (r.error || r.message || "error") + "). Try again.");
+    }
+  }).catch(function(){ btn.disabled = false; setStatus($("r-status"), "bad", "No connection — nothing was saved."); });
+}
+
+/* ---------- log ---------- */
+function filtered(){
+  var q = F.q.toLowerCase();
+  return (S.entries||[]).filter(function(e){
+    if (F.athlete !== "all" && e.athlete_id !== +F.athlete) return false;
+    var d = dateOnly(e.logged_at);
+    if (F.from && d < F.from) return false;
+    if (F.to && d > F.to) return false;
+    if (q) {
+      var hay = [e.event_description, e.findings, e.assessment, e.plan, e.notes, athleteName(e.athlete_id)].join(" ").toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+function soapLine(label, v){
+  return v ? '<li><b>' + label + '</b> ' + esc(v) + '</li>' : '<li class="empty"><b>' + label + '</b> —</li>';
+}
+function renderLog(){
+  var h = '<div class="filters">' +
+    '<div class="field"><label for="f-athlete">Athlete</label><select id="f-athlete"><option value="all">All athletes</option>';
+  (S.athletes||[]).forEach(function(a){ h += '<option value="' + a.id + '"' + (F.athlete === String(a.id) ? ' selected' : '') + '>' + esc(a.display_name) + '</option>'; });
+  h += '</select></div>' +
+    '<div class="field"><label for="f-q">Search</label><input id="f-q" type="search" placeholder="ankle, cheville, taping…" value="' + esc(F.q) + '"></div>' +
+    '<div class="field"><label for="f-from">From</label><input id="f-from" type="date" value="' + esc(F.from) + '"></div>' +
+    '<div class="field"><label for="f-to">To</label><input id="f-to" type="date" value="' + esc(F.to) + '"></div>' +
+    '</div>';
+  var list = filtered();
+  h += '<div class="actions" style="margin-top:0;align-items:center"><span class="muted">' + list.length + ' of ' + (S.entries||[]).length + ' entries</span>' +
+       '<button class="btn" id="f-csv"' + (list.length ? '' : ' disabled') + '>Export CSV (Excel)</button></div>';
+  if (!list.length) h += '<p class="muted" style="margin-top:16px">' + ((S.entries||[]).length ? 'Nothing matches these filters.' : 'No entries yet.') + '</p>';
+  list.forEach(function(e){
+    h += '<article class="entry" data-id="' + e.id + '">' +
+      '<div class="etop"><span class="edate">' + esc(when(e.logged_at)) + '</span>' +
+      '<span class="eath">' + esc(athleteName(e.athlete_id)) + '</span>' +
+      '<span class="eby">by ' + esc(personName(e.author_person_id)) + (e.updated_at !== e.created_at ? ' · edited' : '') + '</span></div>' +
+      '<ul class="soap">' + soapLine("(S)", e.event_description) + soapLine("(O)", e.findings) +
+      soapLine("(A)", e.assessment) + soapLine("(P/I)", e.plan) + soapLine("Notes", e.notes) + '</ul>';
+    if (canEdit(e)) h += '<div class="eactions"><button class="btn" data-edit="' + e.id + '">Edit</button></div>';
+    h += '</article>';
+  });
+  if (ME && ME.is_admin && (S.audit||[]).length) {
+    h += '<h2 class="sec">Audit trail (last ' + Math.min(S.audit.length, 50) + ')</h2>';
+    S.audit.slice(0, 50).forEach(function(a){
+      var e = (S.entries||[]).find(function(x){ return x.id === a.log_id; });
+      h += '<div class="muted" style="margin:4px 0"><b>' + esc(personName(a.actor_person_id)) + '</b> ' +
+        (a.action === 'insert' ? 'added' : 'edited') + ' #' + a.log_id + (e ? ' (' + esc(athleteName(e.athlete_id)) + ')' : '') +
+        (a.changed ? ' — ' + esc(Object.keys(a.changed).join(', ')) : '') + ' · ' + esc(when(a.at)) + '</div>';
+    });
+  }
+  $("t-log").innerHTML = h;
+}
+
+function csvCell(v){ v = v == null ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
+function exportCSV(){
+  var rows = [["Date","Time","Athlete","(S) Description of event","(O) Findings","(A) Assessment","(P/I) Plan/intervention","Notes","Logged by","Last edited"]];
+  filtered().forEach(function(e){
+    var d = new Date(e.logged_at);
+    rows.push([dateOnly(e.logged_at), d.toLocaleTimeString("en-CA", {timeZone:"America/Toronto", hour:"2-digit", minute:"2-digit"}),
+      athleteName(e.athlete_id), e.event_description, e.findings, e.assessment, e.plan, e.notes,
+      personName(e.author_person_id), when(e.updated_at)]);
+  });
+  // UTF-8 BOM so Excel opens accents correctly; CRLF line ends.
+  var csv = "﻿" + rows.map(function(r){ return r.map(csvCell).join(","); }).join("\r\n");
+  var blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "injury-log-" + dateOnly(new Date().toISOString()) + ".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+}
+
+/* ---------- help ---------- */
+function renderHelp(){
+  $("t-help").innerHTML =
+    '<h2>How it works</h2><ul>' +
+    '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Structure into SOAP</b>.</li>' +
+    '<li>The structured fields come back for <b>review</b> — read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
+    '<li>No structuring available? Your note lands in Notes and you sort it yourself. You can also skip structuring with <b>Fill in the fields myself</b>.</li>' +
+    '<li><b>Log:</b> every entry, newest first, with filters by athlete, date and text, and a CSV export that opens in Excel.</li>' +
+    '<li>You can edit your own entries; Lens can edit any. Every edit is in the audit trail with the author\'s name. Nothing is ever deleted from the app.</li>' +
+    '</ul>' +
+    '<h2>Privacy design</h2><ul>' +
+    '<li><b>Dictation stays on the phone.</b> The app uses your keyboard\'s microphone (Apple / Google dictation), not a web speech service.</li>' +
+    '<li><b>The athlete is never sent with the note.</b> Only the text goes to the structuring service, after known names, emails and phone numbers are replaced on your phone. Say "the athlete", not a name.</li>' +
+    '<li><b>The structuring service keeps nothing.</b> It forwards the text to the Anthropic API and returns the fields; the API does not train on this data (see the README for the terms Lens must confirm).</li>' +
+    '<li><b>Stored data</b> lives in a separate database schema with no direct table access — only passphrase-checked functions, with a lockout after 5 wrong tries.</li>' +
+    '<li><b>Your passphrase</b> is personal, at least 12 characters, and forgotten when you close the tab.</li>' +
+    '</ul>' +
+    '<h2>Confidentiality</h2>' +
+    '<p>This is a confidential clinical record for the team medical staff. Never share screenshots or CSV exports, and keep athlete names inside the app — in messages and emails, say "the athlete".</p>';
+}
+
+/* ---------- render / tabs ---------- */
+function renderAll(){
+  if (!S) return;
+  renderLog(); renderHelp();
+  $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (clinician)" : "")) : "";
+  $("sync").textContent = "Updated " + when(S.now);
+}
+function showTab(k){
+  document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", x.dataset.t === k ? "true" : "false"); });
+  ["new","log","help"].forEach(function(t){ $("t-"+t).classList.toggle("hidden", t !== k); });
+  $("t-" + k).focus({ preventScroll:true });
+}
+
+document.addEventListener("click", function(e){
+  var t = e.target;
+  var tab = t.closest && t.closest(".tab");
+  if (tab) { showTab(tab.dataset.t); return; }
+  if (t.closest && t.closest("#n-structure")) { structure(); return; }
+  if (t.closest && t.closest("#n-manual")) {
+    openReview({ athlete_id:+$("n-athlete").value, when:$("n-when").value, fields:{ notes: $("n-text").value.trim() }, mode:"manual" }); return;
+  }
+  if (t.closest && t.closest("#r-save")) { save(); return; }
+  if (t.closest && t.closest("#r-back")) {
+    if ($("r-id").value) { resetNew(); showTab("log"); } else { $("step-review").classList.add("hidden"); $("step-dictate").classList.remove("hidden"); }
+    return;
+  }
+  var ed = t.closest && t.closest("[data-edit]");
+  if (ed) {
+    var en = (S.entries||[]).find(function(x){ return x.id === +ed.dataset.edit; });
+    if (!en) return;
+    showTab("new");
+    openReview({ id: en.id, athlete_id: en.athlete_id, when: toLocalInput(new Date(en.logged_at)), fields: en, mode:"edit" });
+    return;
+  }
+  if (t.closest && t.closest("#f-csv")) { exportCSV(); return; }
+  if (t.closest && t.closest("#switch")) { setPass(""); ME = null; S = null; lock(); return; }
+});
+document.addEventListener("input", function(e){
+  var id = e.target.id;
+  if (id === "f-q") { F.q = e.target.value; }
+  else if (id === "f-from") { F.from = e.target.value; }
+  else if (id === "f-to") { F.to = e.target.value; }
+  else return;
+  var active = document.activeElement && document.activeElement.id;
+  var pos = document.activeElement && document.activeElement.selectionStart;
+  renderLog();
+  if (active && $(active)) { $(active).focus(); try { $(active).setSelectionRange(pos, pos); } catch(_){} }
+});
+document.addEventListener("change", function(e){
+  if (e.target.id === "f-athlete") { F.athlete = e.target.value; renderLog(); }
+});
+
+/* ---------- sign in / boot ---------- */
+function lock(msg){
+  $("app").classList.add("hidden"); $("lock").classList.remove("hidden");
+  $("lockerr").textContent = msg || ""; $("pass").value = ""; $("pass").focus();
+}
+$("enter").onclick = function(){
+  var v = $("pass").value;
+  if (!v) { $("lockerr").textContent = "Enter your passphrase."; return; }
+  setPass(v); $("lockerr").textContent = "Checking…"; boot();
+};
+$("pass").addEventListener("keydown", function(e){ if (e.key === "Enter") $("enter").click(); });
+
+function boot(){
+  if (!myPass()) { lock(); return; }
+  rpc("il_state").then(function(r){
+    if (!r || !r.ok) {
+      setPass("");
+      lock(r && r.error === "bad_pass" ? "That passphrase isn't recognised."
+         : r && r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes."
+         : "Something went wrong: " + (r && (r.error || r.message) || "no response"));
+      return;
+    }
+    S = r; ME = r.me;
+    $("lock").classList.add("hidden"); $("app").classList.remove("hidden");
+    resetNew(); renderAll(); showTab("new");
+  }).catch(function(){ lock("No connection — try again."); });
+}
+function refresh(){
+  if (!S || document.hidden) return;
+  // Don't rebuild the log while someone is typing in a filter or editing a form.
+  var a = document.activeElement;
+  if (a && /^(f-|r-|n-)/.test(a.id || "")) return;
+  rpc("il_state").then(function(r){ if (r && r.ok) { S = r; ME = r.me || ME; renderAll(); } });
+}
+setInterval(refresh, 30000);
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
+boot();
+</script>
+</body>
+</html>

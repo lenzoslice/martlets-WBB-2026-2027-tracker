@@ -444,6 +444,7 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
         <button class="tab" role="tab" aria-selected="false" data-t="res">Resources</button>
         <button class="tab" role="tab" aria-selected="false" data-t="audit">Activity</button>
         <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
+        <button class="tab hidden" role="tab" aria-selected="false" data-t="injury" id="tab-injury">Injury log</button>
       </div>
     </div>
   </header>
@@ -457,6 +458,7 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
     <div id="t-res"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-audit" role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-help"  role="tabpanel" tabindex="-1" class="hidden help"></div>
+    <div id="t-injury" role="tabpanel" tabindex="-1" class="hidden help"></div>
     <p class="syncline" id="sync"></p>
   </main>
 </div>
@@ -472,6 +474,9 @@ var FILTER = "all";
 // Temporary pause requested by Lens (2026-08-07). Keep the alert code in
 // place so it can be restored without rebuilding the removal/audit flow.
 var LOST_COVERAGE_ALERTS_ENABLED = false;
+// Link stub for Lens's separate injury-log module (clinical/injury-log/, its own
+// schema and passphrases). Empty = tab hidden. Set to the deployed URL to show it.
+var INJURY_LOG_URL = "https://lenzoslice.github.io/martlets-WBB-2026-2027-tracker/injury/";
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
@@ -1108,9 +1113,16 @@ function renderHelp(){
     'transcribed 2026-08-01. Winter 2027 will be added when published.</p>';
 }
 
+function renderInjury(){
+  $("tab-injury").classList.toggle("hidden", !INJURY_LOG_URL);
+  $("t-injury").innerHTML = INJURY_LOG_URL
+    ? '<h2>Injury log</h2><p>Clinical injury entries live in a separate app with its own passphrase (not your tracker PIN).</p>' +
+      '<div class="res-actions"><a class="btn primary" href="' + esc(INJURY_LOG_URL) + '" target="_blank" rel="noopener">Open the injury log</a></div>'
+    : '';
+}
 function renderAll(){
   if (!S) return;
-  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderRes(); renderAudit(); renderHelp();
+  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderRes(); renderAudit(); renderHelp(); renderInjury();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
@@ -1122,7 +1134,7 @@ document.addEventListener("click", function(e){
   if (tab) {
     document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", "false"); });
     tab.setAttribute("aria-selected", "true");
-    ["dash","cal","cov","avail","res","audit","help"].forEach(function(k){
+    ["dash","cal","cov","avail","res","audit","help","injury"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== tab.dataset.t);
     });
     $("t-" + tab.dataset.t).focus({ preventScroll:true });
