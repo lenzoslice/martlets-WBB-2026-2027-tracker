@@ -255,6 +255,10 @@ p { margin:0 0 var(--sp-3); }
 var SB   = "https://fdybcqdavyezdvxehlee.supabase.co";
 var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZkeWJjcWRhdnllemR2eGVobGVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1OTg4MDMsImV4cCI6MjEwMTE3NDgwM30.OS_jRNaQR8Qh0x0yW-WBZZhkd2gGbwxMP1a_rYiBNqo";
 var FN   = SB + "/functions/v1/injury_structure";
+// AI structuring on/off. false = manual mode: the "Structure into SOAP" button is hidden and the
+// dictated note goes straight to the review form (in Notes) for the student to sort by hand.
+// Flip to true once ANTHROPIC_API_KEY is set on the edge function, then re-publish.
+var AI_STRUCTURING = false;
 
 var S = null;      // server state
 var ME = null;     // who the server says I am
@@ -480,9 +484,12 @@ function exportCSV(){
 function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
-    '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Structure into SOAP</b>.</li>' +
-    '<li>The structured fields come back for <b>review</b> — read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
-    '<li>No structuring available? Your note lands in Notes and you sort it yourself. You can also skip structuring with <b>Fill in the fields myself</b>.</li>' +
+    (AI_STRUCTURING
+      ? '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Structure into SOAP</b>.</li>' +
+        '<li>The structured fields come back for <b>review</b> — read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
+        '<li>No structuring available? Your note lands in Notes and you sort it yourself. You can also skip structuring with <b>Fill in the fields myself</b>.</li>'
+      : '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Continue to the fields</b>.</li>' +
+        '<li>Your note lands in <b>Notes</b>. Move the pieces into S / O / A / P (copy-paste is fine), then <b>Save</b>. Nothing is saved until you tap Save.</li>') +
     '<li><b>Log:</b> every entry, newest first, with filters by athlete, date and text, and a CSV export that opens in Excel.</li>' +
     '<li>You can edit your own entries; Lens can edit any. Every edit is in the audit trail with the author\'s name. Nothing is ever deleted from the app.</li>' +
     '</ul>' +
@@ -586,6 +593,13 @@ function refresh(){
 setInterval(refresh, 30000);
 document.addEventListener("visibilitychange", function(){ if (!document.hidden) refresh(); });
 boot();
+// Manual mode (AI_STRUCTURING = false): hide the structure button, promote the manual button.
+(function applyAiMode(){
+  if (AI_STRUCTURING) return;
+  var s = $("n-structure"), m = $("n-manual");
+  if (s) s.classList.add("hidden");
+  if (m) { m.classList.add("primary"); m.textContent = "Continue to the fields"; }
+})();
 </script>
 </body>
 </html>
