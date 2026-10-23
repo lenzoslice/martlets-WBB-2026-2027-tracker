@@ -108,6 +108,48 @@ h1 { font-size:20px; letter-spacing:-.01em; }
 }
 .tab[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--brand); }
 .tab:hover { color:var(--ink); }
+.tab, .more-btn { display:inline-flex; align-items:center; gap:6px; }
+.tab svg, .more-btn svg { width:20px; height:20px; flex:0 0 auto; }
+.more-btn { display:none; border:none; background:none; color:var(--ink-3); font:inherit; cursor:pointer; -webkit-appearance:none; appearance:none; }
+
+/* Phones: the tab strip becomes a fixed bottom bar (5 slots) and the secondary
+   views move into a "More" sheet above it. Desktop keeps the top strip. */
+@media (max-width:640px) {
+  .tabs {
+    position:fixed; top:auto; bottom:0; left:0; right:0; z-index:50;
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:0;
+    margin:0; padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    overflow:visible; background:var(--surface);
+    border-top:1px solid var(--line); border-bottom:none;
+    box-shadow:0 -4px 16px rgba(16,18,22,.06);
+  }
+  .tabs .tab, .more-btn {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    min-height:54px; padding:6px 2px; border-bottom:none; border-radius:var(--r-sm);
+    font-size:10.5px; font-weight:600; letter-spacing:.01em; color:var(--ink-3);
+  }
+  .tabs .tab svg, .more-btn svg { width:22px; height:22px; }
+  .tabs .tab[aria-selected="true"], .more-btn[aria-selected="true"] { color:var(--brand); }
+  .tabs .tab[aria-selected="true"] svg, .more-btn[aria-selected="true"] svg { stroke-width:2.4; }
+  .tabs .tab:active, .more-btn:active { background:color-mix(in srgb, var(--brand) 10%, transparent); }
+  .wrap { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+  #toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
+  #more-sheet {
+    position:fixed; left:var(--sp-3); right:var(--sp-3);
+    bottom:calc(72px + env(safe-area-inset-bottom)); z-index:55;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg);
+    box-shadow:var(--shadow-2); padding:var(--sp-2);
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:var(--sp-1);
+    animation:rise var(--dur) var(--ease);
+  }
+  #more-sheet .tab {
+    display:flex; flex-direction:row; justify-content:flex-start; gap:var(--sp-3);
+    min-height:var(--tap); padding:0 var(--sp-3); border:none; border-radius:var(--r-sm);
+    font-size:14px; font-weight:600; color:var(--ink-2);
+  }
+  #more-sheet .tab svg { width:20px; height:20px; }
+  #more-sheet .tab[aria-selected="true"] { color:var(--brand); background:color-mix(in srgb, var(--brand) 10%, transparent); }
+}
 
 /* ---------- generic pieces ---------- */
 .card {
@@ -436,16 +478,18 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
       <h1>Coverage Tracker — 2026-27</h1>
       <p class="idline">Signed in as <b id="whoami"></b> ·
         <button class="linkbtn" id="switch">Sign out</button></p>
-      <div class="tabs" role="tablist" aria-label="Views">
-        <button class="tab" role="tab" aria-selected="true"  data-t="dash">Dashboard</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="cal">Calendar</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="cov">List</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="avail">Availability</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="res">Resources</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="audit">Activity</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
-        <button class="tab hidden" role="tab" aria-selected="false" data-t="injury" id="tab-injury">Injury log</button>
+      <div class="tabs" role="tablist" aria-label="Views" id="tabs">
+        <button class="tab" role="tab" aria-selected="true"  data-t="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Dashboard</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="lbl">Calendar</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="cov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="lbl">List</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="avail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg><span class="lbl">Availability</span></button>
+        <button class="tab tab-2" role="tab" aria-selected="false" data-t="res"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Resources</span></button>
+        <button class="tab tab-2" role="tab" aria-selected="false" data-t="audit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="lbl">Activity</span></button>
+        <button class="tab tab-2" role="tab" aria-selected="false" data-t="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><span class="lbl">Help</span></button>
+        <button class="tab tab-2 hidden" role="tab" aria-selected="false" data-t="injury" id="tab-injury"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Injury log</span></button>
+        <button class="more-btn" type="button" id="more-btn" aria-haspopup="true" aria-expanded="false" aria-controls="more-sheet" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="lbl">More</span></button>
       </div>
+      <div id="more-sheet" class="hidden" role="group" aria-label="More views"></div>
     </div>
   </header>
 
@@ -1116,7 +1160,7 @@ function renderHelp(){
 function renderInjury(){
   $("tab-injury").classList.toggle("hidden", !INJURY_LOG_URL);
   $("t-injury").innerHTML = INJURY_LOG_URL
-    ? '<h2>Injury log</h2><p>Clinical injury entries live in a separate app with its own passphrase (not your tracker PIN).</p>' +
+    ? '<h2>Injury log</h2><p>Clinical injury entries live in a separate app. Sign in there with the same PIN you use here.</p>' +
       '<div class="res-actions"><a class="btn primary" href="' + esc(INJURY_LOG_URL) + '" target="_blank" rel="noopener">Open the injury log</a></div>'
     : '';
 }
@@ -1128,8 +1172,32 @@ function renderAll(){
 }
 
 /* ---------- interactions ---------- */
+/* Bottom bar on phones: secondary tabs live in the "More" sheet. One set of
+   buttons, moved between the strip and the sheet as the viewport changes. */
+var MOBILE_NAV = window.matchMedia("(max-width:640px)");
+function closeMore(){ $("more-sheet").classList.add("hidden"); $("more-btn").setAttribute("aria-expanded", "false"); }
+function syncMore(){
+  var active = document.querySelector('#more-sheet .tab[aria-selected="true"]');
+  $("more-btn").setAttribute("aria-selected", active ? "true" : "false");
+}
+function layoutTabs(){
+  var strip = $("tabs"), sheet = $("more-sheet"), more = $("more-btn");
+  var secondary = Array.prototype.slice.call(document.querySelectorAll(".tab.tab-2"));
+  if (MOBILE_NAV.matches) secondary.forEach(function(b){ sheet.appendChild(b); });
+  else { secondary.forEach(function(b){ strip.insertBefore(b, more); }); closeMore(); }
+  syncMore();
+}
+layoutTabs();
+(MOBILE_NAV.addEventListener ? MOBILE_NAV.addEventListener("change", layoutTabs) : MOBILE_NAV.addListener(layoutTabs));
+
 document.addEventListener("click", function(e){
   var t = e.target;
+  if (t.closest && t.closest("#more-btn")) {
+    var open = $("more-sheet").classList.toggle("hidden");
+    $("more-btn").setAttribute("aria-expanded", open ? "false" : "true");
+    return;
+  }
+  if (!(t.closest && t.closest("#more-sheet"))) closeMore();
   var tab = t.closest && t.closest(".tab");
   if (tab) {
     document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", "false"); });
@@ -1137,6 +1205,7 @@ document.addEventListener("click", function(e){
     ["dash","cal","cov","avail","res","audit","help","injury"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== tab.dataset.t);
     });
+    closeMore(); syncMore();
     $("t-" + tab.dataset.t).focus({ preventScroll:true });
     return;
   }

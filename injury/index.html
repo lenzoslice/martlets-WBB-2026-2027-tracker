@@ -165,10 +165,10 @@ p { margin:0 0 var(--sp-3); }
   <div class="card">
     <p class="brandline">McGill Martlets W-Basketball</p>
     <h1>Injury Log</h1>
-    <p class="muted" id="lockmsg">Enter your clinical passphrase. Lens gives you yours — it signs your name to every entry.</p>
-    <label for="pass" class="muted" style="font-weight:600">Passphrase</label>
-    <input id="pass" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false"
-           placeholder="at least 12 characters" aria-describedby="lockerr">
+    <p class="muted" id="lockmsg">Enter your PIN — the same 4-digit PIN as the coverage tracker. It signs your name to every entry.</p>
+    <label for="pass" class="muted" style="font-weight:600">PIN</label>
+    <input id="pass" type="password" inputmode="numeric" autocomplete="one-time-code" autocapitalize="none" spellcheck="false"
+           placeholder="4-digit PIN" aria-describedby="lockerr">
     <button class="btn primary" id="enter">Sign in</button>
     <p class="err" id="lockerr" role="alert"></p>
   </div>
@@ -365,7 +365,7 @@ function structure(){
       if (r.ok && r.fields) {
         openReview({ athlete_id: athlete_id, when: whenV, fields: r.fields, mode:"ai" });
       } else if (r.error === "bad_pass" || r.error === "locked_out") {
-        lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your passphrase no longer works — ask Lens.");
+        lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens.");
       } else {
         var why = r.error === "no_api_key"
           ? "AI structuring isn't set up on the server yet — your note is in Notes. Sort it into the fields yourself, or save as is."
@@ -399,7 +399,7 @@ function save(){
       toast(id ? "Entry updated." : "Entry saved.");
       resetNew(); showTab("log");
     } else if (r.error === "bad_pass" || r.error === "locked_out") {
-      lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your passphrase no longer works — ask Lens.");
+      lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens.");
     } else {
       setStatus($("r-status"), "bad", r.error === "empty" ? "Nothing to save — fill in at least one field."
         : r.error === "forbidden" ? "Only the author or Lens can edit this entry."
@@ -497,8 +497,8 @@ function renderHelp(){
     '<li><b>Dictation stays on the phone.</b> The app uses your keyboard\'s microphone (Apple / Google dictation), not a web speech service.</li>' +
     '<li><b>The athlete is never sent with the note.</b> Only the text goes to the structuring service, after known names, emails and phone numbers are replaced on your phone. Say "the athlete", not a name.</li>' +
     '<li><b>The structuring service keeps nothing.</b> It forwards the text to the Anthropic API and returns the fields; the API does not train on this data (see the README for the terms Lens must confirm).</li>' +
-    '<li><b>Stored data</b> lives in a separate database schema with no direct table access — only passphrase-checked functions, with a lockout after 5 wrong tries.</li>' +
-    '<li><b>Your passphrase</b> is personal, at least 12 characters, and forgotten when you close the tab.</li>' +
+    '<li><b>Stored data</b> lives in a separate database schema with no direct table access — only PIN-checked functions, with a lockout after 5 wrong tries.</li>' +
+    '<li><b>Your PIN</b> is the same one you use for the coverage tracker, and it is forgotten when you close the tab.</li>' +
     '</ul>' +
     '<h2>Confidentiality</h2>' +
     '<p>This is a confidential clinical record for the team medical staff. Never share screenshots or CSV exports, and keep athlete names inside the app — in messages and emails, say "the athlete".</p>';
@@ -563,7 +563,7 @@ function lock(msg){
 }
 $("enter").onclick = function(){
   var v = $("pass").value;
-  if (!v) { $("lockerr").textContent = "Enter your passphrase."; return; }
+  if (!v) { $("lockerr").textContent = "Enter your PIN."; return; }
   setPass(v); $("lockerr").textContent = "Checking…"; boot();
 };
 $("pass").addEventListener("keydown", function(e){ if (e.key === "Enter") $("enter").click(); });
@@ -573,7 +573,7 @@ function boot(){
   rpc("il_state").then(function(r){
     if (!r || !r.ok) {
       setPass("");
-      lock(r && r.error === "bad_pass" ? "That passphrase isn't recognised."
+      lock(r && r.error === "bad_pass" ? "That PIN isn't recognised."
          : r && r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes."
          : "Something went wrong: " + (r && (r.error || r.message) || "no response"));
       return;
