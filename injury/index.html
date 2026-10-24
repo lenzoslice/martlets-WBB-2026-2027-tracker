@@ -67,6 +67,35 @@ h1 { font-size:20px; letter-spacing:-.01em; }
   transition:color var(--dur) var(--ease); }
 .tab[aria-selected="true"] { color:var(--ink); border-bottom-color:var(--brand); }
 .tab:hover { color:var(--ink); }
+.tab { display:inline-flex; align-items:center; gap:6px; }
+.tab svg { width:20px; height:20px; flex:0 0 auto; }
+[role="tabpanel"]:focus { outline:none; }
+#n-mic { display:inline-flex; align-items:center; gap:6px; }
+#n-mic svg { margin:0 !important; vertical-align:middle; }
+
+/* Phones, standalone only: the strip becomes a fixed bottom bar like the tracker's.
+   Embedded in the tracker (html.embed) the tracker's own bar is there, so keep the strip. */
+@media (max-width:640px) {
+  html:not(.embed) .tabs {
+    position:fixed; top:auto; bottom:0; left:0; right:0; z-index:50;
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:0;
+    margin:0; padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    overflow:visible; background:var(--surface);
+    border-top:1px solid var(--line); border-bottom:none;
+    box-shadow:0 -4px 16px rgba(16,18,22,.06);
+  }
+  html:not(.embed) .tabs .tab {
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    min-height:54px; padding:6px 2px; border-bottom:none; border-radius:var(--r-sm);
+    font-size:10.5px; font-weight:600; letter-spacing:.01em; color:var(--ink-3);
+  }
+  html:not(.embed) .tabs .tab svg { width:22px; height:22px; }
+  html:not(.embed) .tabs .tab[aria-selected="true"] { color:var(--brand); }
+  html:not(.embed) .tabs .tab[aria-selected="true"] svg { stroke-width:2.4; }
+  html:not(.embed) .tabs .tab:active { background:color-mix(in srgb, var(--brand) 10%, transparent); }
+  html:not(.embed) .wrap { padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
+  html:not(.embed) #toast { bottom:calc(84px + env(safe-area-inset-bottom)); }
+}
 .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow-1); }
 h2.sec { font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); margin:var(--sp-5) 0 var(--sp-2); }
 .muted { font-size:13px; color:var(--ink-3); }
@@ -199,9 +228,9 @@ button.eath { border:none; background:none; font:inherit; font-weight:700; color
       <p class="idline">Signed in as <b id="whoami"></b> ·
         <button class="linkbtn" id="switch">Sign out</button></p>
       <div class="tabs" role="tablist" aria-label="Views">
-        <button class="tab" role="tab" aria-selected="true"  data-t="new">New entry</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="log">Log</button>
-        <button class="tab" role="tab" aria-selected="false" data-t="help">Help</button>
+        <button class="tab" role="tab" aria-selected="true"  data-t="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">New entry</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="lbl">Log</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><span class="lbl">Help</span></button>
       </div>
     </div>
   </header>
