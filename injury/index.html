@@ -149,6 +149,15 @@ p { margin:0 0 var(--sp-3); }
   box-shadow:var(--shadow-2); animation:rise var(--dur) var(--ease); }
 @keyframes rise { from { opacity:0; transform:translateY(8px); } }
 .hidden { display:none !important; }
+/* Embedded: keep the New entry / Log / Help strip, drop the title block, banner and PIN box. */
+.embed .topbar .brandline, .embed .topbar h1, .embed .idline, .embed #app-banner, .embed #lock .notice, .embed #pass, .embed #enter, .embed label[for="pass"] { display:none !important; }
+.embed .topbar { padding-top:0; }
+.embed .topbar-in { padding-top:0; }
+.embed .wrap { padding-top:var(--sp-2); padding-bottom:var(--sp-4); }
+.embed #lock .card { margin-top:var(--sp-3); }
+.etype { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-2);
+  background:color-mix(in srgb, var(--ink) 8%, transparent); border-radius:var(--r-pill); padding:2px 8px; }
+button.eath { border:none; background:none; font:inherit; font-weight:700; color:var(--brand); cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:3px; }
 .syncline { font-size:12px; color:var(--ink-3); text-align:right; margin:var(--sp-5) 0 0; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 </style>
@@ -203,15 +212,17 @@ p { margin:0 0 var(--sp-3); }
         <h2 class="sec">1 · Dictate or type the note</h2>
         <div class="row2">
           <div class="field"><label for="n-athlete">Athlete</label><select id="n-athlete"></select></div>
-          <div class="field"><label for="n-when">Date &amp; time</label><input id="n-when" type="datetime-local"></div>
+          <div class="field"><label for="n-when">Date</label><input id="n-when" type="date"></div>
         </div>
+        <div class="field"><label for="n-type">Type</label>
+          <select id="n-type"><option value="">Type…</option><option>Taping</option><option>Assessment</option><option>Treatment</option><option>Rehab</option><option>Other</option></select></div>
         <div class="field">
           <label for="n-text">Note <small>— English or French</small></label>
           <textarea id="n-text" class="big" placeholder="Tap the microphone key on your phone keyboard and talk. What happened, what you found, what you think, what you did."></textarea>
           <p class="hint">Dictation stays on your phone (keyboard microphone). Say <b>"the athlete"</b>, never a name — the athlete is chosen above and is never sent with the text.</p>
         </div>
         <div class="actions">
-          <button class="btn primary" id="n-structure">Structure into SOAP</button>
+          <button class="btn primary" id="n-structure">Generate with AI</button>
           <button class="btn" id="n-manual">Fill in the fields myself</button>
         </div>
         <div id="n-status" class="status hidden" aria-live="polite"></div>
@@ -222,8 +233,10 @@ p { margin:0 0 var(--sp-3); }
         <div id="r-status" class="status" aria-live="polite"></div>
         <div class="row2">
           <div class="field"><label for="r-athlete">Athlete</label><select id="r-athlete"></select></div>
-          <div class="field"><label for="r-when">Date &amp; time</label><input id="r-when" type="datetime-local"></div>
+          <div class="field"><label for="r-when">Date</label><input id="r-when" type="date"></div>
         </div>
+        <div class="field"><label for="r-type">Type</label>
+          <select id="r-type"><option value="">Type…</option><option>Taping</option><option>Assessment</option><option>Treatment</option><option>Rehab</option><option>Other</option></select></div>
         <div class="field"><label for="r-event">(S) Description of event</label><textarea id="r-event" rows="3"></textarea></div>
         <div class="field"><label for="r-findings">(O) Findings</label><textarea id="r-findings" rows="3"></textarea></div>
         <div class="field"><label for="r-assessment">(A) Assessment</label><textarea id="r-assessment" rows="3"></textarea></div>
@@ -258,11 +271,14 @@ var FN   = SB + "/functions/v1/injury_structure";
 // AI structuring on/off. false = manual mode: the "Structure into SOAP" button is hidden and the
 // dictated note goes straight to the review form (in Notes) for the student to sort by hand.
 // Flip to true once ANTHROPIC_API_KEY is set on the edge function, then re-publish.
-var AI_STRUCTURING = false;
+var AI_STRUCTURING = true;
 
+// Embedded in the coverage tracker? Then the tracker signs us in (same-origin postMessage) and we hide our own chrome.
+var EMBED = (function(){ try { return window.parent !== window || /[?&]embed=1/.test(location.search); } catch(e){ return true; } })();
+if (EMBED) document.documentElement.classList.add("embed");
 var S = null;      // server state
 var ME = null;     // who the server says I am
-var F = { athlete:"all", from:"", to:"", q:"" };
+var F = { athlete:"all", type:"all", from:"", to:"", q:"" };
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
@@ -286,9 +302,11 @@ function setStatus(el, cls, msg){ el.className = "status " + cls; el.textContent
 function athleteName(id){ var a = (S.athletes||[]).find(function(x){ return x.id === id; }); return a ? a.display_name : "Athlete ?"; }
 function personName(id){ var p = (S.people||[]).find(function(x){ return x.id === id; }); return p ? p.name : "?"; }
 function pad(n){ return n < 10 ? "0" + n : "" + n; }
-function toLocalInput(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes()); }
-function fromLocalInput(v){ var d = v ? new Date(v) : new Date(); return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString(); }
-function when(iso){ return new Date(iso).toLocaleString("en-CA", {timeZone:"America/Toronto", year:"numeric", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); }
+function toLocalInput(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+// Date only: stored as noon local on that day, so it never drifts across midnight in exports.
+function fromLocalInput(v){ var d = v ? new Date(v + "T12:00:00") : new Date(); return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString(); }
+function when(iso){ return new Date(iso).toLocaleDateString("en-CA", {timeZone:"America/Toronto", year:"numeric", month:"short", day:"numeric"}); }
+function whenTime(iso){ return new Date(iso).toLocaleString("en-CA", {timeZone:"America/Toronto", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); }
 function dateOnly(iso){ return new Date(iso).toLocaleDateString("en-CA", {timeZone:"America/Toronto"}); }
 function canEdit(e){ return !!ME && (ME.is_admin || e.author_person_id === ME.id); }
 
@@ -321,6 +339,7 @@ function deidentify(text){
 function resetNew(){
   fillAthletes($("n-athlete"), null);
   $("n-when").value = toLocalInput(new Date());
+  $("n-type").value = "";
   $("n-text").value = "";
   $("n-status").classList.add("hidden");
   $("step-review").classList.add("hidden");
@@ -332,6 +351,7 @@ function openReview(opts){
   fillAthletes($("r-athlete"), opts.athlete_id);
   $("r-when").value = opts.when;
   var f = opts.fields || {};
+  $("r-type").value = opts.type != null ? opts.type : (f.entry_type || "");
   $("r-event").value = f.event_description || "";
   $("r-findings").value = f.findings || "";
   $("r-assessment").value = f.assessment || "";
@@ -352,7 +372,7 @@ function openReview(opts){
 function structure(){
   var raw = $("n-text").value.trim();
   if (!raw) { setStatus($("n-status"), "bad", "Dictate or type something first."); return; }
-  var athlete_id = +$("n-athlete").value, whenV = $("n-when").value;
+  var athlete_id = +$("n-athlete").value, whenV = $("n-when").value, typeV = $("n-type").value;
   var text = deidentify(raw);
   var btn = $("n-structure"); btn.disabled = true; $("n-manual").disabled = true;
   setStatus($("n-status"), "", "Structuring… the athlete is not sent, only the note.");
@@ -363,21 +383,21 @@ function structure(){
     .then(function(r){
       btn.disabled = false; $("n-manual").disabled = false;
       if (r.ok && r.fields) {
-        openReview({ athlete_id: athlete_id, when: whenV, fields: r.fields, mode:"ai" });
+        openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: r.fields, mode:"ai" });
       } else if (r.error === "bad_pass" || r.error === "locked_out") {
         lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens.");
       } else {
         var why = r.error === "no_api_key"
-          ? "AI structuring isn't set up on the server yet — your note is in Notes. Sort it into the fields yourself, or save as is."
+          ? "AI isn't switched on yet (Lens needs to add the server key). Your note is in Notes — sort it into the fields yourself, or save as is."
           : r.error === "refused" ? "The AI declined to process this note. Your note is in Notes — sort it yourself."
           : r.error === "text_too_long" ? "That note is too long for structuring (6,000 characters max). It's in Notes — split it or sort it yourself."
           : "Structuring failed (" + (r.error || r._status) + "). Your note is in Notes — sort it yourself, or try again.";
-        openReview({ athlete_id: athlete_id, when: whenV, fields: { notes: raw }, mode:"raw", why: why });
+        openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: { notes: raw }, mode:"raw", why: why });
       }
     })
     .catch(function(){
       btn.disabled = false; $("n-manual").disabled = false;
-      openReview({ athlete_id: athlete_id, when: whenV, fields: { notes: raw }, mode:"raw",
+      openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: { notes: raw }, mode:"raw",
         why: "No connection to the structuring service. Your note is in Notes — sort it yourself, or save as is." });
     });
 }
@@ -389,7 +409,8 @@ function save(){
     p_athlete_id: +$("r-athlete").value,
     p_logged_at: fromLocalInput($("r-when").value),
     p_event: $("r-event").value, p_findings: $("r-findings").value, p_assessment: $("r-assessment").value,
-    p_plan: $("r-plan").value, p_notes: $("r-notes").value
+    p_plan: $("r-plan").value, p_notes: $("r-notes").value,
+    p_type: $("r-type").value || null
   };
   var btn = $("r-save"); btn.disabled = true;
   rpc("il_save", args).then(function(r){
@@ -413,6 +434,7 @@ function filtered(){
   var q = F.q.toLowerCase();
   return (S.entries||[]).filter(function(e){
     if (F.athlete !== "all" && e.athlete_id !== +F.athlete) return false;
+    if (F.type !== "all" && (e.entry_type || "") !== F.type) return false;
     var d = dateOnly(e.logged_at);
     if (F.from && d < F.from) return false;
     if (F.to && d > F.to) return false;
@@ -431,6 +453,9 @@ function renderLog(){
     '<div class="field"><label for="f-athlete">Athlete</label><select id="f-athlete"><option value="all">All athletes</option>';
   (S.athletes||[]).forEach(function(a){ h += '<option value="' + a.id + '"' + (F.athlete === String(a.id) ? ' selected' : '') + '>' + esc(a.display_name) + '</option>'; });
   h += '</select></div>' +
+    '<div class="field"><label for="f-type">Type</label><select id="f-type"><option value="all">All types</option>';
+  ["Taping","Assessment","Treatment","Rehab","Other"].forEach(function(t){ h += '<option' + (F.type === t ? ' selected' : '') + '>' + t + '</option>'; });
+  h += '</select></div>' +
     '<div class="field"><label for="f-q">Search</label><input id="f-q" type="search" placeholder="ankle, cheville, taping…" value="' + esc(F.q) + '"></div>' +
     '<div class="field"><label for="f-from">From</label><input id="f-from" type="date" value="' + esc(F.from) + '"></div>' +
     '<div class="field"><label for="f-to">To</label><input id="f-to" type="date" value="' + esc(F.to) + '"></div>' +
@@ -442,7 +467,8 @@ function renderLog(){
   list.forEach(function(e){
     h += '<article class="entry" data-id="' + e.id + '">' +
       '<div class="etop"><span class="edate">' + esc(when(e.logged_at)) + '</span>' +
-      '<span class="eath">' + esc(athleteName(e.athlete_id)) + '</span>' +
+      '<button class="eath" type="button" data-ath="' + e.athlete_id + '" title="Show only this athlete">' + esc(athleteName(e.athlete_id)) + '</button>' +
+      (e.entry_type ? '<span class="etype">' + esc(e.entry_type) + '</span>' : '') +
       '<span class="eby">by ' + esc(personName(e.author_person_id)) + (e.updated_at !== e.created_at ? ' · edited' : '') + '</span></div>' +
       '<ul class="soap">' + soapLine("(S)", e.event_description) + soapLine("(O)", e.findings) +
       soapLine("(A)", e.assessment) + soapLine("(P/I)", e.plan) + soapLine("Notes", e.notes) + '</ul>';
@@ -455,7 +481,7 @@ function renderLog(){
       var e = (S.entries||[]).find(function(x){ return x.id === a.log_id; });
       h += '<div class="muted" style="margin:4px 0"><b>' + esc(personName(a.actor_person_id)) + '</b> ' +
         (a.action === 'insert' ? 'added' : 'edited') + ' #' + a.log_id + (e ? ' (' + esc(athleteName(e.athlete_id)) + ')' : '') +
-        (a.changed ? ' — ' + esc(Object.keys(a.changed).join(', ')) : '') + ' · ' + esc(when(a.at)) + '</div>';
+        (a.changed ? ' — ' + esc(Object.keys(a.changed).join(', ')) : '') + ' · ' + esc(whenTime(a.at)) + '</div>';
     });
   }
   $("t-log").innerHTML = h;
@@ -463,10 +489,10 @@ function renderLog(){
 
 function csvCell(v){ v = v == null ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
 function exportCSV(){
-  var rows = [["Date","Time","Athlete","(S) Description of event","(O) Findings","(A) Assessment","(P/I) Plan/intervention","Notes","Logged by","Last edited"]];
+  var rows = [["Date","Type","Athlete","(S) Description of event","(O) Findings","(A) Assessment","(P/I) Plan/intervention","Notes","Logged by","Last edited"]];
   filtered().forEach(function(e){
     var d = new Date(e.logged_at);
-    rows.push([dateOnly(e.logged_at), d.toLocaleTimeString("en-CA", {timeZone:"America/Toronto", hour:"2-digit", minute:"2-digit"}),
+    rows.push([dateOnly(e.logged_at), e.entry_type || "",
       athleteName(e.athlete_id), e.event_description, e.findings, e.assessment, e.plan, e.notes,
       personName(e.author_person_id), when(e.updated_at)]);
   });
@@ -485,12 +511,12 @@ function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
     (AI_STRUCTURING
-      ? '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Structure into SOAP</b>.</li>' +
-        '<li>The structured fields come back for <b>review</b> — read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
+      ? '<li><b>New entry:</b> pick the athlete, the date and the type (taping, assessment…), tap the microphone key on your keyboard and say what happened, what you found, what you think and what you did. Then <b>Generate with AI</b>.</li>' +
+        '<li>The AI only sorts your own words into S / O / A / P — it adds nothing. The fields come back for <b>review</b>: read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
         '<li>No structuring available? Your note lands in Notes and you sort it yourself. You can also skip structuring with <b>Fill in the fields myself</b>.</li>'
       : '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Continue to the fields</b>.</li>' +
         '<li>Your note lands in <b>Notes</b>. Move the pieces into S / O / A / P (copy-paste is fine), then <b>Save</b>. Nothing is saved until you tap Save.</li>') +
-    '<li><b>Log:</b> every entry, newest first, with filters by athlete, date and text, and a CSV export that opens in Excel.</li>' +
+    '<li><b>Log:</b> every entry, newest first. Filter by athlete, type, date or a word — or <b>tap an athlete\'s name</b> on any entry to see everything about her over the past weeks or months. CSV export opens in Excel.</li>' +
     '<li>You can edit your own entries; Lens can edit any. Every edit is in the audit trail with the author\'s name. Nothing is ever deleted from the app.</li>' +
     '</ul>' +
     '<h2>Privacy design</h2><ul>' +
@@ -509,7 +535,7 @@ function renderAll(){
   if (!S) return;
   renderLog(); renderHelp();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (clinician)" : "")) : "";
-  $("sync").textContent = "Updated " + when(S.now);
+  $("sync").textContent = "Updated " + whenTime(S.now);
 }
 function showTab(k){
   document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", x.dataset.t === k ? "true" : "false"); });
@@ -523,7 +549,7 @@ document.addEventListener("click", function(e){
   if (tab) { showTab(tab.dataset.t); return; }
   if (t.closest && t.closest("#n-structure")) { structure(); return; }
   if (t.closest && t.closest("#n-manual")) {
-    openReview({ athlete_id:+$("n-athlete").value, when:$("n-when").value, fields:{ notes: $("n-text").value.trim() }, mode:"manual" }); return;
+    openReview({ athlete_id:+$("n-athlete").value, when:$("n-when").value, type:$("n-type").value, fields:{ notes: $("n-text").value.trim() }, mode:"manual" }); return;
   }
   if (t.closest && t.closest("#r-save")) { save(); return; }
   if (t.closest && t.closest("#r-back")) {
@@ -539,6 +565,8 @@ document.addEventListener("click", function(e){
     return;
   }
   if (t.closest && t.closest("#f-csv")) { exportCSV(); return; }
+  var ath = t.closest && t.closest("[data-ath]");
+  if (ath) { F.athlete = F.athlete === ath.dataset.ath ? "all" : ath.dataset.ath; renderLog(); window.scrollTo({top:0, behavior:"smooth"}); return; }
   if (t.closest && t.closest("#switch")) { setPass(""); ME = null; S = null; lock(); return; }
 });
 document.addEventListener("input", function(e){
@@ -554,12 +582,30 @@ document.addEventListener("input", function(e){
 });
 document.addEventListener("change", function(e){
   if (e.target.id === "f-athlete") { F.athlete = e.target.value; renderLog(); }
+  else if (e.target.id === "f-type") { F.type = e.target.value; renderLog(); }
 });
 
 /* ---------- sign in / boot ---------- */
 function lock(msg){
   $("app").classList.add("hidden"); $("lock").classList.remove("hidden");
+  if (EMBED) {
+    // No PIN box here: the tracker sends the PIN. Only show why it didn't work.
+    $("lockmsg").textContent = msg ? msg : "Signing you in from the tracker…";
+    $("lockerr").textContent = "";
+    return;
+  }
   $("lockerr").textContent = msg || ""; $("pass").value = ""; $("pass").focus();
+}
+if (EMBED) {
+  window.addEventListener("message", function(ev){
+    if (ev.origin !== location.origin || !ev.data) return;
+    if (ev.data.type === "il-auth") { setPass(String(ev.data.pass || "")); boot(); }
+    else if (ev.data.type === "il-signout") { setPass(""); S = null; ME = null; lock(); }
+  });
+  var postH = function(){ try { window.parent.postMessage({ type:"il-height", h: document.documentElement.scrollHeight }, location.origin); } catch(e){} };
+  if (window.ResizeObserver) new ResizeObserver(postH).observe(document.body);
+  window.addEventListener("load", postH);
+  try { window.parent.postMessage({ type:"il-ready" }, location.origin); } catch(e){}
 }
 $("enter").onclick = function(){
   var v = $("pass").value;
@@ -573,7 +619,7 @@ function boot(){
   rpc("il_state").then(function(r){
     if (!r || !r.ok) {
       setPass("");
-      lock(r && r.error === "bad_pass" ? "That PIN isn't recognised."
+      lock(r && r.error === "bad_pass" ? (EMBED ? "Your PIN isn't set up for the injury log yet — ask Lens." : "That PIN isn't recognised.")
          : r && r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes."
          : "Something went wrong: " + (r && (r.error || r.message) || "no response"));
       return;

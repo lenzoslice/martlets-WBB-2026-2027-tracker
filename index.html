@@ -322,52 +322,6 @@ p { margin:0 0 var(--sp-3); }
 .cal-detail { margin-top:var(--sp-5); padding-top:var(--sp-3); border-top:2px solid var(--line-2); }
 .cal-detail h3 { font-size:16px; margin-bottom:var(--sp-2); }
 
-/* ---------- availability ---------- */
-/* Days as rows, time-of-day as columns: on a 375px screen this is the only
-   arrangement where every toggle clears 44x44. */
-.av-tbl { border-collapse:separate; border-spacing:var(--sp-1); width:100%; margin-left:-4px; }
-.av-tbl th { font-size:11px; font-weight:700; color:var(--ink-3); text-align:center;
-  padding-bottom:2px; line-height:1.3; }
-.av-tbl th span { display:block; font-weight:400; font-size:11px; }
-.av-tbl th.day-h { text-align:left; font-size:13px; color:var(--ink); width:1%; white-space:nowrap;
-  padding-right:var(--sp-2); }
-.av-cell {
-  display:grid; place-items:center; width:100%; min-height:46px;
-  border:1.5px solid var(--line); background:var(--surface); color:var(--ink-3);
-  border-radius:var(--r-sm); cursor:pointer;
-  transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease);
-}
-.av-cell svg { width:16px; height:16px; opacity:.45; }
-.av-cell[aria-pressed="true"] {
-  background:var(--bad-tint); border-color:var(--bad-line); color:var(--bad);
-}
-.av-cell[aria-pressed="true"] svg { opacity:1; }
-.av-cell:disabled { opacity:.4; cursor:default; }
-.bl-row { display:flex; flex-wrap:wrap; gap:var(--sp-2); align-items:center; margin:var(--sp-3) 0; }
-.bl-row input {
-  min-height:var(--tap); padding:0 var(--sp-3); font-size:16px;
-  border:1.5px solid var(--line-2); border-radius:var(--r-sm);
-  background:var(--surface); color:var(--ink);
-}
-.bl-row input[type=text] { flex:1 1 160px; }
-.btn {
-  min-height:var(--tap); padding:0 var(--sp-4); border-radius:var(--r-sm);
-  border:1.5px solid var(--line-2); background:var(--surface); color:var(--ink);
-  font-size:14px; font-weight:600; cursor:pointer;
-  transition:background var(--dur) var(--ease);
-}
-.btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
-.btn:active { transform:scale(.98); }
-.listitem {
-  display:flex; justify-content:space-between; align-items:center; gap:var(--sp-3);
-  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-sm);
-  padding:var(--sp-2) var(--sp-3); margin-top:var(--sp-2); font-size:14px;
-}
-.listitem .del {
-  min-height:36px; padding:0 var(--sp-2); border:none; background:none;
-  color:var(--bad); font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--r-sm);
-}
-
 /* ---------- audit ---------- */
 .audit-item {
   background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line-2);
@@ -443,6 +397,14 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
 @keyframes rise { from { opacity:0; transform:translateY(8px); } }
 
 .hidden { display:none !important; }
+#il-frame { display:block; width:100%; border:0; min-height:420px; background:transparent; }
+.howto { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-3); }
+.howto summary { cursor:pointer; font-weight:700; color:var(--ink); min-height:var(--tap); display:flex; align-items:center; }
+.howto summary::-webkit-details-marker { display:none; }
+.howto summary::before { content:""; width:8px; height:8px; margin:0 10px 0 2px; border-right:2px solid var(--brand); border-bottom:2px solid var(--brand); transform:rotate(-45deg); transition:transform var(--dur) var(--ease); flex:0 0 auto; }
+.howto[open] summary::before { transform:rotate(45deg); }
+.howto ol { margin:var(--sp-2) 0 0; padding-left:var(--sp-5); font-size:14px; color:var(--ink-2); }
+.howto li { margin:var(--sp-2) 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -482,11 +444,10 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
         <button class="tab" role="tab" aria-selected="true"  data-t="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Dashboard</span></button>
         <button class="tab" role="tab" aria-selected="false" data-t="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="lbl">Calendar</span></button>
         <button class="tab" role="tab" aria-selected="false" data-t="cov"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="lbl">List</span></button>
-        <button class="tab" role="tab" aria-selected="false" data-t="avail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/></svg><span class="lbl">Availability</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-t="injury" id="tab-injury"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Injury log</span></button>
         <button class="tab tab-2" role="tab" aria-selected="false" data-t="res"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span class="lbl">Resources</span></button>
         <button class="tab tab-2" role="tab" aria-selected="false" data-t="audit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="lbl">Activity</span></button>
         <button class="tab tab-2" role="tab" aria-selected="false" data-t="help"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg><span class="lbl">Help</span></button>
-        <button class="tab tab-2 hidden" role="tab" aria-selected="false" data-t="injury" id="tab-injury"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Injury log</span></button>
         <button class="more-btn" type="button" id="more-btn" aria-haspopup="true" aria-expanded="false" aria-controls="more-sheet" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span class="lbl">More</span></button>
       </div>
       <div id="more-sheet" class="hidden" role="group" aria-label="More views"></div>
@@ -498,7 +459,6 @@ a.btn { display:inline-flex; align-items:center; text-decoration:none; }
     <div id="t-dash"  role="tabpanel" tabindex="-1"></div>
     <div id="t-cal"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-cov"   role="tabpanel" tabindex="-1" class="hidden"></div>
-    <div id="t-avail" role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-res"   role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-audit" role="tabpanel" tabindex="-1" class="hidden"></div>
     <div id="t-help"  role="tabpanel" tabindex="-1" class="hidden help"></div>
@@ -518,9 +478,10 @@ var FILTER = "all";
 // Temporary pause requested by Lens (2026-08-07). Keep the alert code in
 // place so it can be restored without rebuilding the removal/audit flow.
 var LOST_COVERAGE_ALERTS_ENABLED = false;
-// Link stub for Lens's separate injury-log module (clinical/injury-log/, its own
-// schema and passphrases). Empty = tab hidden. Set to the deployed URL to show it.
-var INJURY_LOG_URL = "https://lenzoslice.github.io/martlets-WBB-2026-2027-tracker/injury/";
+// Lens's injury-log module (clinical/injury-log/, its own schema) is served from
+// injury/ in this repo and embedded in the Injury log tab. Same origin, so this page
+// hands it the signed-in PIN by postMessage — nobody signs in twice. Empty = tab hidden.
+var INJURY_LOG_URL = "injury/index.html?embed=1";
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ var d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
@@ -601,27 +562,6 @@ function callTime(ev){
   var s = startMinutes(ev);
   return s === null ? '' : fmtMinutes(s - lead);
 }
-function slotOf(ev){
-  var s = startMinutes(ev);
-  if (s === null) return null;
-  return s < 12 * 60 ? 'morning' : (s < 17 * 60 ? 'afternoon' : 'evening');
-}
-function weekdayOf(dateStr){ return new Date(dateStr + 'T12:00:00').getDay(); }
-
-// Who has actually said they can't make this — a blackout on the date, or a
-// weekly block covering its time. We only ever report this direction: not
-// having blocked a slot is not the same as being available for it.
-function blockedFor(ev){
-  var wd = weekdayOf(ev.date), sl = slotOf(ev);
-  return S.people.filter(function(p){
-    if (S.blackouts.some(function(b){ return b.person_id === p.id && b.date === ev.date; })) return true;
-    if (!sl) return false;                      // unknown time → can't say
-    return S.weekly.some(function(w){
-      return w.person_id === p.id && w.weekday === wd && w.slot === sl;
-    });
-  });
-}
-
 function status(ev){
   if (ev.min_needed === 0) return "ctx";
   var n = counts(ev);
@@ -690,18 +630,6 @@ function eventRow(ev, interactive){
   if (call) h += '<p class="note"><b>Be there ' + esc(call) + '</b>' +
                  (lead === 90 ? ' — 1h30 before tip-off' : lead === 30 ? ' — 30 min before' : '') + '</p>';
   if (ev.notes) h += '<p class="note">' + esc(ev.notes) + '</p>';
-
-  // Only stated unavailability is shown. Silence means nobody has blocked it,
-  // not that anyone is free.
-  if (st === "uncovered" || st === "partial") {
-    var out = blockedFor(ev);
-    if (out.length === S.people.length) {
-      h += '<p class="av-free none">Everyone has marked themselves unavailable</p>';
-    } else if (out.length) {
-      h += '<p class="av-free">Not available: ' +
-           esc(out.map(function(p){ return p.name; }).join(", ")) + '</p>';
-    }
-  }
 
   if (st !== "ctx" && interactive) {
     h += '<div class="chips">';
@@ -914,95 +842,6 @@ function renderCal(){
   $("t-cal").innerHTML = h;
 }
 
-/* ---------- availability ---------- */
-var AV_WHO = null;
-var DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-var DAYS_FULL = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-var SLOTS = [["morning","Morning","before noon"],
-             ["afternoon","Afternoon","12–5pm"],
-             ["evening","Evening","5pm on"]];
-
-function renderAvail(){
-  if (!ME) return;
-  if (AV_WHO === null || !S.people.some(function(p){ return p.id === AV_WHO; })) AV_WHO = ME.id;
-  var who = S.people.find(function(p){ return p.id === AV_WHO; }) || ME;
-  var mine = who.id === ME.id;
-  var editable = mine || ME.is_admin;
-
-  var h = '<h2 class="sec">Weekly — when ' + (mine ? 'you can\'t' : esc(who.name) + ' can\'t') + ' cover</h2>' +
-    '<p class="muted">Tap any time you normally <b>cannot</b> make. Empty means available. ' +
-    'This never signs you up — it shows where the roster is genuinely short.</p>';
-
-  if (ME.is_admin && S.people.length > 1) {
-    h += '<div class="chips" role="group" aria-label="Whose availability">';
-    S.people.forEach(function(p){
-      h += '<button class="chip" aria-pressed="' + (p.id === AV_WHO) + '" data-av-who="' + p.id + '">' +
-           SVG.check + '<span>' + esc(p.name) + '</span></button>';
-    });
-    h += '</div>';
-  }
-
-  h += '<table class="av-tbl"><thead><tr><th class="day-h"></th>';
-  SLOTS.forEach(function(s){
-    h += '<th scope="col">' + s[1] + '<span>' + s[2] + '</span></th>';
-  });
-  h += '</tr></thead><tbody>';
-  for (var wd = 0; wd < 7; wd++) {
-    h += '<tr><th scope="row" class="day-h">' + DAYS[wd] + '</th>';
-    SLOTS.forEach(function(s){
-      var busy = S.weekly.some(function(w){
-        return w.person_id === who.id && w.weekday === wd && w.slot === s[0];
-      });
-      h += '<td><button class="av-cell" aria-pressed="' + busy + '"' + (editable ? '' : ' disabled') +
-           ' data-av-wd="' + wd + '" data-av-slot="' + s[0] + '"' +
-           ' aria-label="' + DAYS_FULL[wd] + ' ' + s[1].toLowerCase() + ': ' +
-           (busy ? 'unavailable' : 'available') + '">' +
-           (busy ? SVG.cross : SVG.dot) + '</button></td>';
-    });
-    h += '</tr>';
-  }
-  h += '</tbody></table>';
-
-  h += '<h2 class="sec">Specific days off</h2><p class="muted">Exams, trips, anything one-off.</p>';
-  if (editable) {
-    h += '<div class="bl-row">' +
-         '<label for="bl-date" class="hidden">Date off</label>' +
-         '<input type="date" id="bl-date" min="2026-08-01" max="2027-06-30">' +
-         '<label for="bl-note" class="hidden">Reason</label>' +
-         '<input type="text" id="bl-note" placeholder="Reason (optional)" maxlength="40">' +
-         '<button class="btn" id="bl-add">Add</button></div>';
-  }
-  var bl = S.blackouts.filter(function(b){ return b.person_id === who.id; })
-                      .sort(function(a,b){ return a.date < b.date ? -1 : 1; });
-  if (!bl.length) h += '<p class="muted">None yet.</p>';
-  bl.forEach(function(b){
-    h += '<div class="listitem"><span>' + esc(fmtDate(b.date)) +
-         (b.note ? ' — ' + esc(b.note) : '') + '</span>' +
-         (editable ? '<button class="del" data-bl-del="' + b.date +
-                     '" aria-label="Remove day off on ' + esc(fmtDate(b.date)) + '">Remove</button>' : '') +
-         '</div>';
-  });
-
-  var today = todayISO();
-  var trouble = S.events.filter(function(e){
-    return e.min_needed > 0 && e.date >= today && status(e) !== 'covered' &&
-           blockedFor(e).length === S.people.length;
-  });
-  h += '<h2 class="sec">Open slots everyone has blocked</h2>';
-  if (!trouble.length) {
-    h += '<p class="muted">None — no open slot has been blocked by all four of you.</p>';
-  } else {
-    h += '<p class="muted">Every single person has marked themselves unavailable for these. ' +
-         'They need a schedule conversation, not a reminder:</p>';
-    trouble.slice(0, 12).forEach(function(e){
-      h += '<div class="listitem"><span>' + esc(fmtDate(e.date)) + ' · ' +
-           esc(e.time_label) + ' — ' + esc(e.detail) + '</span></div>';
-    });
-    if (trouble.length > 12) h += '<p class="muted">…and ' + (trouble.length - 12) + ' more.</p>';
-  }
-  $("t-avail").innerHTML = h;
-}
-
 /* ---------- alert ---------- */
 function renderAlert(){
   if (!LOST_COVERAGE_ALERTS_ENABLED) { $("alertbar").innerHTML = ''; return; }
@@ -1126,7 +965,7 @@ function renderHelp(){
     '<li>Minimums: practice 1 · game 2 · all-hands events (medicals, training, first practice) = everyone.</li>' +
     '<li>Road trips — Ravens’ in Ottawa, TMU in Toronto — are a single sign-up covering the whole trip, travel through return.</li>' +
     '<li>We are not needed for shoot-arounds, just the game.</li>' +
-    '<li><b>Availability</b> is where you mark the times you can’t cover and any one-off days off. It never signs you up; it shows Lens where the roster is genuinely short, so gaps get solved early instead of the night before.</li>' +
+    '<li><b>Injury log</b> replaces the text message: every taping, assessment or treatment you do goes in there, in the same PIN sign-in. Pick the athlete, dictate, tap Generate with AI, check the fields, save. Tap an athlete\'s name in the log to see her whole history.</li>' +
     '<li>Coming off something already covered asks you to confirm because it may leave the event below its minimum. Do it as early as you can.</li>' +
     '<li>Your PIN is personal — it signs your name to every change. Lost it? Lens can issue a new one.</li>' +
     '<li>⚠️ in an event means that detail isn’t confirmed yet. Don’t plan around it.</li>' +
@@ -1157,16 +996,36 @@ function renderHelp(){
     'transcribed 2026-08-01. Winter 2027 will be added when published.</p>';
 }
 
+var IL_FRAME = null, IL_READY = false;
+function ilSend(msg){ if (IL_FRAME && IL_FRAME.contentWindow) { try { IL_FRAME.contentWindow.postMessage(msg, location.origin); } catch(e){} } }
+function ilAuth(){ if (IL_READY && myCode()) ilSend({ type:"il-auth", pass: myCode() }); }
 function renderInjury(){
   $("tab-injury").classList.toggle("hidden", !INJURY_LOG_URL);
-  $("t-injury").innerHTML = INJURY_LOG_URL
-    ? '<h2>Injury log</h2><p>Clinical injury entries live in a separate app. Sign in there with the same PIN you use here.</p>' +
-      '<div class="res-actions"><a class="btn primary" href="' + esc(INJURY_LOG_URL) + '" target="_blank" rel="noopener">Open the injury log</a></div>'
-    : '';
+  if (!INJURY_LOG_URL) return;
+  if (!IL_FRAME) {
+    // Built once: rebuilding on every refresh would reload the embedded page.
+    $("t-injury").innerHTML =
+      '<details class="card howto"><summary>How to use the injury log</summary>' +
+      '<ol>' +
+      '<li><b>Use it instead of texting Lens.</b> Every taping, assessment, treatment or rehab session goes here, the same day.</li>' +
+      '<li><b>New entry:</b> pick the athlete, the date and the type, then tap the microphone key on your keyboard and say what happened, what you found, what you think and what you did. Say <b>"the athlete"</b>, never a name.</li>' +
+      '<li><b>Generate with AI</b> sorts your own words into S / O / A / P. It adds nothing. Read the fields, fix anything, then <b>Save</b>.</li>' +
+      '<li><b>Log:</b> filter by athlete, type, date or a word, or tap an athlete\'s name to see everything about her. Export to Excel any time.</li>' +
+      '<li><b>Confidential.</b> Team medical staff only; no screenshots, no sharing. Anything urgent is still a call.</li>' +
+      '</ol></details>' +
+      '<iframe id="il-frame" title="Injury log" src="' + esc(INJURY_LOG_URL) + '" scrolling="no"></iframe>';
+    IL_FRAME = $("il-frame");
+  }
+  ilAuth();
 }
+window.addEventListener("message", function(ev){
+  if (ev.origin !== location.origin || !ev.data) return;
+  if (ev.data.type === "il-ready") { IL_READY = true; ilAuth(); }
+  else if (ev.data.type === "il-height" && IL_FRAME) IL_FRAME.style.height = Math.max(420, (ev.data.h | 0) + 8) + "px";
+});
 function renderAll(){
   if (!S) return;
-  renderAlert(); renderDash(); renderCal(); renderCov(); renderAvail(); renderRes(); renderAudit(); renderHelp(); renderInjury();
+  renderAlert(); renderDash(); renderCal(); renderCov(); renderRes(); renderAudit(); renderHelp(); renderInjury();
   $("whoami").textContent = ME ? (ME.name + (ME.is_admin ? " (coordinator)" : "")) : "";
   $("sync").textContent = "Updated " + when(S.now);
 }
@@ -1202,7 +1061,7 @@ document.addEventListener("click", function(e){
   if (tab) {
     document.querySelectorAll(".tab").forEach(function(x){ x.setAttribute("aria-selected", "false"); });
     tab.setAttribute("aria-selected", "true");
-    ["dash","cal","cov","avail","res","audit","help","injury"].forEach(function(k){
+    ["dash","cal","cov","res","audit","help","injury"].forEach(function(k){
       $("t-"+k).classList.toggle("hidden", k !== tab.dataset.t);
     });
     closeMore(); syncMore();
@@ -1272,36 +1131,9 @@ document.addEventListener("click", function(e){
   }
 
   if (t.closest && t.closest("#switch")) {
-    localStorage.removeItem("mt_code"); ME = null; S = null; lock(); return;
+    localStorage.removeItem("mt_code"); ME = null; S = null; ilSend({ type:"il-signout" }); lock(); return;
   }
 
-  var avWho = t.closest && t.closest("[data-av-who]");
-  if (avWho) { AV_WHO = +avWho.dataset.avWho; renderAvail(); return; }
-
-  var cell = t.closest && t.closest(".av-cell");
-  if (cell && !cell.disabled) {
-    var busy = cell.getAttribute("aria-pressed") === "true";
-    cell.disabled = true;
-    post({action:"weekly", person_id:AV_WHO, weekday:+cell.dataset.avWd,
-          slot:cell.dataset.avSlot, on:!busy})
-      .then(function(r){ if (r.ok) { S = r.state; ME = r.me || ME; renderAll(); }
-                         else { cell.disabled = false; toast("That didn't save."); } })
-      .catch(function(){ cell.disabled = false; toast("No connection."); });
-    return;
-  }
-
-  if (t.closest && t.closest("#bl-add")) {
-    var d = $("bl-date").value;
-    if (!d) { toast("Pick a date first."); return; }
-    post({action:"blackout", person_id:AV_WHO, date:d, on:true, note:$("bl-note").value.trim()})
-      .then(function(r){ if (r.ok) { S = r.state; renderAll(); toast("Day off added."); } });
-    return;
-  }
-  var del = t.closest && t.closest("[data-bl-del]");
-  if (del) {
-    post({action:"blackout", person_id:AV_WHO, date:del.dataset.blDel, on:false})
-      .then(function(r){ if (r.ok) { S = r.state; renderAll(); toast("Removed."); } });
-  }
 });
 
 /* ---------- sign in / boot ---------- */
