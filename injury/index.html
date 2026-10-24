@@ -149,6 +149,13 @@ p { margin:0 0 var(--sp-3); }
   box-shadow:var(--shadow-2); animation:rise var(--dur) var(--ease); }
 @keyframes rise { from { opacity:0; transform:translateY(8px); } }
 .hidden { display:none !important; }
+.rcard { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--sp-2) var(--sp-4) var(--sp-4); margin-top:var(--sp-3); box-shadow:var(--shadow-1); }
+.rcard.unmatched { border-color:var(--warn-line); }
+.rcard .rhead { display:flex; justify-content:space-between; align-items:center; min-height:var(--tap); }
+.rcard .status { margin-top:var(--sp-2); }
+.microw { display:flex; align-items:center; gap:var(--sp-3); margin-top:var(--sp-2); flex-wrap:wrap; }
+#n-mic.listening { border-color:var(--brand); color:var(--brand); animation:pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow:0 0 0 4px color-mix(in srgb, var(--brand) 18%, transparent); } }
 /* Embedded: keep the New entry / Log / Help strip, drop the title block, banner and PIN box. */
 .embed .topbar .brandline, .embed .topbar h1, .embed .idline, .embed #app-banner, .embed #lock .notice, .embed #pass, .embed #enter, .embed label[for="pass"] { display:none !important; }
 .embed .topbar { padding-top:0; }
@@ -203,7 +210,7 @@ button.eath { border:none; background:none; font:inherit; font-weight:700; color
     <div class="notice" role="note" id="app-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
       <div><b>Confidential — team medical staff only</b>
-        <p>Never share screenshots or exports; athlete names stay inside the app. When dictating, never say a name — say "the athlete".</p></div>
+        <p>Never share screenshots or exports; athlete names stay inside the app. When dictating, say the athlete's name so the AI can file the entry under her.</p></div>
     </div>
 
     <!-- ---- New entry ---- -->
@@ -211,15 +218,18 @@ button.eath { border:none; background:none; font:inherit; font-weight:700; color
       <section id="step-dictate">
         <h2 class="sec">1 · Dictate or type the note</h2>
         <div class="row2">
-          <div class="field"><label for="n-athlete">Athlete</label><select id="n-athlete"></select></div>
           <div class="field"><label for="n-when">Date</label><input id="n-when" type="date"></div>
+          <div class="field"><label for="n-lang">Dictation language</label>
+            <select id="n-lang"><option value="en-CA">English</option><option value="fr-CA">Français</option></select></div>
         </div>
-        <div class="field"><label for="n-type">Type</label>
-          <select id="n-type"><option value="">Type…</option><option>Taping</option><option>Assessment</option><option>Treatment</option><option>Rehab</option><option>Other</option></select></div>
         <div class="field">
-          <label for="n-text">Note <small>— English or French</small></label>
-          <textarea id="n-text" class="big" placeholder="Tap the microphone key on your phone keyboard and talk. What happened, what you found, what you think, what you did."></textarea>
-          <p class="hint">Dictation stays on your phone (keyboard microphone). Say <b>"the athlete"</b>, never a name — the athlete is chosen above and is never sent with the text.</p>
+          <label for="n-text">Note <small>— who, what happened, what you found, what you did</small></label>
+          <textarea id="n-text" class="big" placeholder="Example: Lily, taping left ankle before practice. Then Mia came for a calf release, tight after yesterday, felt better after. Karen, new complaint right knee…"></textarea>
+          <div class="microw">
+            <button type="button" class="btn" id="n-mic" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px;margin-right:6px;vertical-align:-3px"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span id="n-mic-lbl">Dictate in the app</span></button>
+            <span class="muted" id="n-mic-status"></span>
+          </div>
+          <p class="hint">Or use the microphone key on your phone keyboard. Say each athlete's <b>name</b>: one message can cover several athletes and several things (a taping, then a release). The AI makes one entry per athlete and per thing done.</p>
         </div>
         <div class="actions">
           <button class="btn primary" id="n-structure">Generate with AI</button>
@@ -231,22 +241,12 @@ button.eath { border:none; background:none; font:inherit; font-weight:700; color
       <section id="step-review" class="hidden">
         <h2 class="sec" id="r-title">2 · Review before saving</h2>
         <div id="r-status" class="status" aria-live="polite"></div>
-        <div class="row2">
-          <div class="field"><label for="r-athlete">Athlete</label><select id="r-athlete"></select></div>
-          <div class="field"><label for="r-when">Date</label><input id="r-when" type="date"></div>
-        </div>
-        <div class="field"><label for="r-type">Type</label>
-          <select id="r-type"><option value="">Type…</option><option>Taping</option><option>Assessment</option><option>Treatment</option><option>Rehab</option><option>Other</option></select></div>
-        <div class="field"><label for="r-event">(S) Description of event</label><textarea id="r-event" rows="3"></textarea></div>
-        <div class="field"><label for="r-findings">(O) Findings</label><textarea id="r-findings" rows="3"></textarea></div>
-        <div class="field"><label for="r-assessment">(A) Assessment</label><textarea id="r-assessment" rows="3"></textarea></div>
-        <div class="field"><label for="r-plan">(P/I) Plan / intervention</label><textarea id="r-plan" rows="3"></textarea></div>
-        <div class="field"><label for="r-notes">Notes</label><textarea id="r-notes" rows="3"></textarea></div>
+        <div id="r-list"></div>
         <div class="actions">
           <button class="btn primary" id="r-save">Save entry</button>
+          <button class="btn" id="r-add">Add another entry</button>
           <button class="btn" id="r-back">Back</button>
         </div>
-        <input type="hidden" id="r-id" value="">
       </section>
     </div>
 
@@ -321,112 +321,187 @@ function fillAthletes(sel, chosen){
 // De-identify before anything leaves the phone for the structuring call:
 // every known athlete code / display name and every known person name is
 // replaced, as are emails and phone numbers. The dropdown choice is never sent.
-function deidentify(text){
-  var t = String(text || "");
-  (S.athletes||[]).forEach(function(a){
-    t = t.replace(new RegExp("\\b" + a.display_name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the athlete");
-  });
-  (S.people||[]).forEach(function(p){
-    var n = p.name.replace(/\s*\(.*?\)\s*/g, "").trim();
-    if (n.length >= 3) t = t.replace(new RegExp("\\b" + n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi"), "the clinician");
-  });
-  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]");
-  t = t.replace(/(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g, "[phone]");
-  return t;
-}
-
 /* ---------- new entry ---------- */
+var TYPES = ["Taping","Assessment","Treatment","Rehab","Other"];
+var REVIEW = null;   // { mode:"ai"|"raw"|"manual"|"edit", why, entries:[...] }
+
 function resetNew(){
-  fillAthletes($("n-athlete"), null);
   $("n-when").value = toLocalInput(new Date());
-  $("n-type").value = "";
   $("n-text").value = "";
   $("n-status").classList.add("hidden");
   $("step-review").classList.add("hidden");
   $("step-dictate").classList.remove("hidden");
+  REVIEW = null;
+}
+function blankEntry(o){
+  return Object.assign({ id:null, athlete_id:null, heard:"", when:toLocalInput(new Date()), type:"",
+    event_description:"", findings:"", assessment:"", plan:"", notes:"", status:"", saved:false }, o || {});
+}
+function athleteOptions(chosen){
+  var h = chosen ? '' : '<option value="" selected>Choose the athlete…</option>';
+  (S.athletes||[]).filter(function(a){ return a.active || a.id === chosen; }).forEach(function(a){
+    h += '<option value="' + a.id + '"' + (a.id === chosen ? ' selected' : '') + '>' + esc(a.display_name) + '</option>';
+  });
+  return h;
+}
+function typeOptions(chosen){
+  var h = '<option value=""' + (chosen ? '' : ' selected') + '>Type…</option>';
+  TYPES.forEach(function(t){ h += '<option' + (t === chosen ? ' selected' : '') + '>' + t + '</option>'; });
+  return h;
 }
 function openReview(opts){
-  // opts: {id, athlete_id, when(local input), fields, mode:"ai"|"raw"|"manual"|"edit"}
-  $("r-id").value = opts.id || "";
-  fillAthletes($("r-athlete"), opts.athlete_id);
-  $("r-when").value = opts.when;
-  var f = opts.fields || {};
-  $("r-type").value = opts.type != null ? opts.type : (f.entry_type || "");
-  $("r-event").value = f.event_description || "";
-  $("r-findings").value = f.findings || "";
-  $("r-assessment").value = f.assessment || "";
-  $("r-plan").value = f.plan || "";
-  $("r-notes").value = f.notes || "";
-  $("r-title").textContent = opts.mode === "edit" ? "Edit entry" : "2 · Review before saving";
-  var st = $("r-status");
-  if (opts.mode === "ai")      setStatus(st, "ok",   "Structured by AI from your note. Read every field — fix anything wrong before saving. Nothing is saved yet.");
-  else if (opts.mode === "raw") setStatus(st, "warn", opts.why || "Structuring isn't available right now — your note is in Notes. Sort it into the fields yourself, or save as is.");
-  else if (opts.mode === "edit") setStatus(st, "",   "Every change is recorded in the audit trail with your name.");
-  else                          setStatus(st, "",   "Fill in what you have. Empty fields are fine.");
+  REVIEW = { mode: opts.mode, why: opts.why || "", entries: (opts.entries || []).map(blankEntry) };
+  if (!REVIEW.entries.length) REVIEW.entries.push(blankEntry());
+  renderReview();
   $("step-dictate").classList.add("hidden");
   $("step-review").classList.remove("hidden");
-  $("r-event").focus({preventScroll:true});
+  var first = document.querySelector('#r-list .rcard select[data-f="athlete_id"]');
+  if (first) first.focus({preventScroll:true});
   window.scrollTo({top:0, behavior:"smooth"});
 }
+function renderReview(){
+  if (!REVIEW) return;
+  var mode = REVIEW.mode, es = REVIEW.entries, n = es.length;
+  $("r-title").textContent = mode === "edit" ? "Edit entry" : "2 · Review before saving" + (n > 1 ? " — " + n + " entries" : "");
+  var st = $("r-status");
+  if (mode === "ai")        setStatus(st, "ok",   (n > 1 ? n + " entries" : "One entry") + " generated from your own words — nothing added. Check the athlete, the type and every field; fix anything wrong. Nothing is saved yet.");
+  else if (mode === "raw")  setStatus(st, "warn", REVIEW.why || "AI isn't available right now — your note is in Notes. Sort it into the fields yourself, or save as is.");
+  else if (mode === "edit") setStatus(st, "",     "Every change is recorded in the audit trail with your name.");
+  else                      setStatus(st, "",     "Fill in what you have. Empty fields are fine.");
+  var h = "";
+  es.forEach(function(e, i){
+    var unmatched = !e.athlete_id;
+    h += '<div class="rcard' + (unmatched ? ' unmatched' : '') + '" data-i="' + i + '">' +
+      '<div class="rhead"><b>' + (mode === "edit" ? "Entry #" + e.id : "Entry " + (i + 1) + (n > 1 ? " of " + n : "")) + '</b>' +
+      (n > 1 ? '<button type="button" class="linkbtn" data-rm="' + i + '">Remove</button>' : '') + '</div>' +
+      (unmatched ? '<p class="status warn" data-warn>' + (e.heard ? 'Not sure who "' + esc(e.heard) + '" is — pick the athlete.' : 'Pick the athlete.') + '</p>' : '') +
+      '<div class="row2">' +
+        '<div class="field"><label>Athlete</label><select data-f="athlete_id">' + athleteOptions(e.athlete_id) + '</select></div>' +
+        '<div class="field"><label>Date</label><input type="date" data-f="when" value="' + esc(e.when) + '"></div>' +
+      '</div>' +
+      '<div class="field"><label>Type</label><select data-f="type">' + typeOptions(e.type) + '</select></div>';
+    [["(S) Description of event","event_description"],["(O) Findings","findings"],["(A) Assessment","assessment"],["(P/I) Plan / intervention","plan"],["Notes","notes"]].forEach(function(f){
+      h += '<div class="field"><label>' + f[0] + '</label><textarea rows="3" data-f="' + f[1] + '">' + esc(e[f[1]]) + '</textarea></div>';
+    });
+    if (e.status) h += '<p class="status bad">' + esc(e.status) + '</p>';
+    h += '</div>';
+  });
+  $("r-list").innerHTML = h;
+  $("r-save").textContent = mode === "edit" ? "Save changes" : (n > 1 ? "Save all (" + n + ")" : "Save entry");
+  $("r-add").classList.toggle("hidden", mode === "edit");
+}
+// Review inputs write straight into REVIEW (no re-render, so typing keeps focus).
+document.addEventListener("input", function(e){
+  var t = e.target, card = t.closest && t.closest(".rcard");
+  if (!card || !t.dataset.f || !REVIEW) return;
+  var en = REVIEW.entries[+card.dataset.i]; if (!en) return;
+  if (t.dataset.f === "athlete_id") {
+    en.athlete_id = t.value ? +t.value : null;
+    card.classList.toggle("unmatched", !en.athlete_id);
+    var w = card.querySelector("[data-warn]"); if (w && en.athlete_id) w.remove();
+  } else en[t.dataset.f] = t.value;
+});
 
+function entryFromAI(x, whenV){
+  return { athlete_id: x.athlete_id ? +x.athlete_id : null, heard: x.athlete_heard || "", when: whenV,
+    type: TYPES.indexOf(x.entry_type) >= 0 ? x.entry_type : "",
+    event_description: x.event_description || "", findings: x.findings || "", assessment: x.assessment || "",
+    plan: x.plan || "", notes: x.notes || "" };
+}
 function structure(){
   var raw = $("n-text").value.trim();
   if (!raw) { setStatus($("n-status"), "bad", "Dictate or type something first."); return; }
-  var athlete_id = +$("n-athlete").value, whenV = $("n-when").value, typeV = $("n-type").value;
-  var text = deidentify(raw);
+  var whenV = $("n-when").value;
   var btn = $("n-structure"); btn.disabled = true; $("n-manual").disabled = true;
-  setStatus($("n-status"), "", "Structuring… the athlete is not sent, only the note.");
-  // Only {pass, text}. No athlete, no id, no name.
+  setStatus($("n-status"), "", "Generating… one entry per athlete and per thing done.");
   fetch(FN, { method:"POST", headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ pass: myPass(), text: text }) })
+    body: JSON.stringify({ pass: myPass(), text: raw }) })
     .then(function(r){ return r.json().then(function(j){ j._status = r.status; return j; }); })
     .then(function(r){
       btn.disabled = false; $("n-manual").disabled = false;
-      if (r.ok && r.fields) {
-        openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: r.fields, mode:"ai" });
+      if (r.ok && r.entries && r.entries.length) {
+        openReview({ mode:"ai", entries: r.entries.map(function(x){ return entryFromAI(x, whenV); }) });
+      } else if (r.ok && r.fields) {            // older single-entry server
+        openReview({ mode:"ai", entries: [entryFromAI(r.fields, whenV)] });
+      } else if (r.ok) {
+        openReview({ mode:"raw", entries: [{ when: whenV, notes: raw }], why: "The AI found nothing to log in that note. It is in Notes — fill in the fields yourself." });
       } else if (r.error === "bad_pass" || r.error === "locked_out") {
         lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens.");
       } else {
         var why = r.error === "no_api_key"
           ? "AI isn't switched on yet (Lens needs to add the server key). Your note is in Notes — sort it into the fields yourself, or save as is."
           : r.error === "refused" ? "The AI declined to process this note. Your note is in Notes — sort it yourself."
-          : r.error === "text_too_long" ? "That note is too long for structuring (6,000 characters max). It's in Notes — split it or sort it yourself."
-          : "Structuring failed (" + (r.error || r._status) + "). Your note is in Notes — sort it yourself, or try again.";
-        openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: { notes: raw }, mode:"raw", why: why });
+          : r.error === "text_too_long" ? "That note is too long for the AI (6,000 characters max). It's in Notes — split it or sort it yourself."
+          : "AI failed (" + (r.error || r._status) + "). Your note is in Notes — sort it yourself, or try again.";
+        openReview({ mode:"raw", entries: [{ when: whenV, notes: raw }], why: why });
       }
     })
     .catch(function(){
       btn.disabled = false; $("n-manual").disabled = false;
-      openReview({ athlete_id: athlete_id, when: whenV, type: typeV, fields: { notes: raw }, mode:"raw",
-        why: "No connection to the structuring service. Your note is in Notes — sort it yourself, or save as is." });
+      openReview({ mode:"raw", entries: [{ when: whenV, notes: raw }], why: "No connection to the AI service. Your note is in Notes — sort it yourself, or save as is." });
     });
 }
 
 function save(){
-  var id = $("r-id").value ? +$("r-id").value : null;
-  var args = {
-    p_id: id,
-    p_athlete_id: +$("r-athlete").value,
-    p_logged_at: fromLocalInput($("r-when").value),
-    p_event: $("r-event").value, p_findings: $("r-findings").value, p_assessment: $("r-assessment").value,
-    p_plan: $("r-plan").value, p_notes: $("r-notes").value,
-    p_type: $("r-type").value || null
-  };
-  var btn = $("r-save"); btn.disabled = true;
-  rpc("il_save", args).then(function(r){
-    btn.disabled = false;
-    if (r.ok) {
-      S = r; ME = r.me || ME; renderAll();
-      toast(id ? "Entry updated." : "Entry saved.");
-      resetNew(); showTab("log");
-    } else if (r.error === "bad_pass" || r.error === "locked_out") {
-      lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens.");
-    } else {
-      setStatus($("r-status"), "bad", r.error === "empty" ? "Nothing to save — fill in at least one field."
+  if (!REVIEW) return;
+  var es = REVIEW.entries, btn = $("r-save");
+  if (es.some(function(e){ return !e.athlete_id; })) {
+    setStatus($("r-status"), "bad", "Pick the athlete on every entry first."); window.scrollTo({top:0, behavior:"smooth"}); return;
+  }
+  btn.disabled = true; $("r-add").disabled = true;
+  var i = 0, saved = 0, errs = 0, stop = false;
+  function next(){
+    if (stop || i >= es.length) { done(); return; }
+    var e = es[i];
+    rpc("il_save", { p_id: e.id, p_athlete_id: +e.athlete_id, p_logged_at: fromLocalInput(e.when),
+      p_event: e.event_description, p_findings: e.findings, p_assessment: e.assessment, p_plan: e.plan, p_notes: e.notes,
+      p_type: e.type || null })
+    .then(function(r){
+      if (r.ok) { S = r; ME = r.me || ME; e.saved = true; e.status = ""; saved++; }
+      else if (r.error === "bad_pass" || r.error === "locked_out") { stop = true; lock(r.error === "locked_out" ? "Too many wrong tries — wait 15 minutes." : "Your PIN no longer works — ask Lens."); return; }
+      else { errs++; e.status = r.error === "empty" ? "Nothing to save — fill in at least one field."
         : r.error === "forbidden" ? "Only the author or Lens can edit this entry."
-        : "That didn't save (" + (r.error || r.message || "error") + "). Try again.");
+        : "That didn't save (" + (r.error || r.message || "error") + "). Try again."; }
+      i++; next();
+    })
+    .catch(function(){ errs++; e.status = "No connection — not saved."; i++; next(); });
+  }
+  function done(){
+    btn.disabled = false; $("r-add").disabled = false;
+    if (stop) return;
+    if (!errs) {
+      renderAll();
+      toast(REVIEW.mode === "edit" ? "Entry updated." : saved === 1 ? "Entry saved." : saved + " entries saved.");
+      resetNew(); showTab("log");
+    } else {
+      REVIEW.entries = es.filter(function(e){ return !e.saved; });
+      renderAll(); renderReview();
+      setStatus($("r-status"), "bad", (saved ? saved + " saved. " : "") + "Fix the entries below and save again.");
+      window.scrollTo({top:0, behavior:"smooth"});
     }
-  }).catch(function(){ btn.disabled = false; setStatus($("r-status"), "bad", "No connection — nothing was saved."); });
+  }
+  next();
+}
+
+/* ---------- in-app dictation (device speech recognition; the keyboard mic still works too) ---------- */
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null, REC = null;
+function micToggle(){
+  if (REC) { try { REC.stop(); } catch(e){} return; }
+  var r = new SR(), ta = $("n-text"), base = ta.value.replace(/\s*$/, ""), lbl = $("n-mic-lbl"), stt = $("n-mic-status");
+  r.lang = $("n-lang").value; r.continuous = true; r.interimResults = true;
+  r.onresult = function(ev){
+    var fin = "", interim = "";
+    for (var i = 0; i < ev.results.length; i++) { var t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t + " "; else interim += t; }
+    ta.value = (base ? base + " " : "") + fin + interim;
+  };
+  r.onerror = function(ev){
+    stt.textContent = ev.error === "not-allowed" || ev.error === "service-not-allowed" ? "Microphone blocked — allow it for this site, or use the keyboard microphone."
+      : ev.error === "no-speech" ? "Didn't hear anything." : "Dictation stopped (" + ev.error + ").";
+  };
+  r.onend = function(){ REC = null; $("n-mic").classList.remove("listening"); $("n-mic").setAttribute("aria-pressed", "false"); lbl.textContent = "Dictate in the app"; if (!stt.textContent) stt.textContent = ""; };
+  stt.textContent = "Listening… tap again to stop.";
+  try { r.start(); REC = r; $("n-mic").classList.add("listening"); $("n-mic").setAttribute("aria-pressed", "true"); lbl.textContent = "Stop"; }
+  catch(e){ stt.textContent = "Couldn't start dictation here — use the keyboard microphone."; }
 }
 
 /* ---------- log ---------- */
@@ -511,8 +586,8 @@ function renderHelp(){
   $("t-help").innerHTML =
     '<h2>How it works</h2><ul>' +
     (AI_STRUCTURING
-      ? '<li><b>New entry:</b> pick the athlete, the date and the type (taping, assessment…), tap the microphone key on your keyboard and say what happened, what you found, what you think and what you did. Then <b>Generate with AI</b>.</li>' +
-        '<li>The AI only sorts your own words into S / O / A / P — it adds nothing. The fields come back for <b>review</b>: read them, fix them, then save. Nothing is saved until you tap Save.</li>' +
+      ? '<li><b>New entry:</b> check the date, tap <b>Dictate in the app</b> (or the microphone key on your keyboard) and say <b>who</b> and what: what happened, what you found, what you did. One message can cover several athletes and several things — a taping, then a release.</li>' +
+        '<li><b>Generate with AI</b> makes one card per athlete and per thing done, matches each name to the roster, picks the type (taping, assessment, treatment, rehab) and fills S / O / A / P with your own words only — it adds nothing. If it isn\'t sure who you meant, the card asks you to pick. Check every card, fix anything, then <b>Save all</b>. Nothing is saved before that.</li>' +
         '<li>No structuring available? Your note lands in Notes and you sort it yourself. You can also skip structuring with <b>Fill in the fields myself</b>.</li>'
       : '<li><b>New entry:</b> pick the athlete, tap the microphone key on your keyboard, say what happened, what you found, what you think and what you did. Then <b>Continue to the fields</b>.</li>' +
         '<li>Your note lands in <b>Notes</b>. Move the pieces into S / O / A / P (copy-paste is fine), then <b>Save</b>. Nothing is saved until you tap Save.</li>') +
@@ -520,8 +595,8 @@ function renderHelp(){
     '<li>You can edit your own entries; Lens can edit any. Every edit is in the audit trail with the author\'s name. Nothing is ever deleted from the app.</li>' +
     '</ul>' +
     '<h2>Privacy design</h2><ul>' +
-    '<li><b>Dictation stays on the phone.</b> The app uses your keyboard\'s microphone (Apple / Google dictation), not a web speech service.</li>' +
-    '<li><b>The athlete is never sent with the note.</b> Only the text goes to the structuring service, after known names, emails and phone numbers are replaced on your phone. Say "the athlete", not a name.</li>' +
+    '<li><b>Dictation</b> uses your phone\'s speech recognition (Apple / Google), either the in-app button or the keyboard microphone.</li>' +
+    '<li><b>The note goes to the AI as you said it,</b> names included, so it can file each entry under the right athlete from the roster.</li>' +
     '<li><b>The structuring service keeps nothing.</b> It forwards the text to the Anthropic API and returns the fields; the API does not train on this data (see the README for the terms Lens must confirm).</li>' +
     '<li><b>Stored data</b> lives in a separate database schema with no direct table access — only PIN-checked functions, with a lockout after 5 wrong tries.</li>' +
     '<li><b>Your PIN</b> is the same one you use for the coverage tracker, and it is forgotten when you close the tab.</li>' +
@@ -548,12 +623,20 @@ document.addEventListener("click", function(e){
   var tab = t.closest && t.closest(".tab");
   if (tab) { showTab(tab.dataset.t); return; }
   if (t.closest && t.closest("#n-structure")) { structure(); return; }
+  if (t.closest && t.closest("#n-mic")) { micToggle(); return; }
   if (t.closest && t.closest("#n-manual")) {
-    openReview({ athlete_id:+$("n-athlete").value, when:$("n-when").value, type:$("n-type").value, fields:{ notes: $("n-text").value.trim() }, mode:"manual" }); return;
+    openReview({ mode:"manual", entries: [{ when: $("n-when").value, notes: $("n-text").value.trim() }] }); return;
   }
   if (t.closest && t.closest("#r-save")) { save(); return; }
+  if (t.closest && t.closest("#r-add")) {
+    if (REVIEW) { REVIEW.entries.push(blankEntry({ when: REVIEW.entries.length ? REVIEW.entries[REVIEW.entries.length - 1].when : toLocalInput(new Date()) })); renderReview(); }
+    var last = document.querySelector('#r-list .rcard:last-child'); if (last) last.scrollIntoView({ behavior:"smooth", block:"start" });
+    return;
+  }
+  var rm = t.closest && t.closest("[data-rm]");
+  if (rm && REVIEW) { REVIEW.entries.splice(+rm.dataset.rm, 1); renderReview(); return; }
   if (t.closest && t.closest("#r-back")) {
-    if ($("r-id").value) { resetNew(); showTab("log"); } else { $("step-review").classList.add("hidden"); $("step-dictate").classList.remove("hidden"); }
+    if (REVIEW && REVIEW.mode === "edit") { resetNew(); showTab("log"); } else { $("step-review").classList.add("hidden"); $("step-dictate").classList.remove("hidden"); }
     return;
   }
   var ed = t.closest && t.closest("[data-edit]");
@@ -561,7 +644,8 @@ document.addEventListener("click", function(e){
     var en = (S.entries||[]).find(function(x){ return x.id === +ed.dataset.edit; });
     if (!en) return;
     showTab("new");
-    openReview({ id: en.id, athlete_id: en.athlete_id, when: toLocalInput(new Date(en.logged_at)), fields: en, mode:"edit" });
+    openReview({ mode:"edit", entries: [{ id: en.id, athlete_id: en.athlete_id, when: toLocalInput(new Date(en.logged_at)), type: en.entry_type || "",
+      event_description: en.event_description || "", findings: en.findings || "", assessment: en.assessment || "", plan: en.plan || "", notes: en.notes || "" }] });
     return;
   }
   if (t.closest && t.closest("#f-csv")) { exportCSV(); return; }
@@ -627,13 +711,14 @@ function boot(){
     S = r; ME = r.me;
     $("lock").classList.add("hidden"); $("app").classList.remove("hidden");
     resetNew(); renderAll(); showTab("new");
+    if (!SR) $("n-mic").classList.add("hidden");
   }).catch(function(){ lock("No connection — try again."); });
 }
 function refresh(){
   if (!S || document.hidden) return;
   // Don't rebuild the log while someone is typing in a filter or editing a form.
   var a = document.activeElement;
-  if (a && /^(f-|r-|n-)/.test(a.id || "")) return;
+  if (a && (/^(f-|n-)/.test(a.id || "") || (a.closest && a.closest("#step-review")))) return;
   rpc("il_state").then(function(r){ if (r && r.ok) { S = r; ME = r.me || ME; renderAll(); } });
 }
 setInterval(refresh, 30000);

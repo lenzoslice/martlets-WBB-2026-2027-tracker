@@ -965,7 +965,7 @@ function renderHelp(){
     '<li>Minimums: practice 1 · game 2 · all-hands events (medicals, training, first practice) = everyone.</li>' +
     '<li>Road trips — Ravens’ in Ottawa, TMU in Toronto — are a single sign-up covering the whole trip, travel through return.</li>' +
     '<li>We are not needed for shoot-arounds, just the game.</li>' +
-    '<li><b>Injury log</b> replaces the text message: every taping, assessment or treatment you do goes in there, in the same PIN sign-in. Pick the athlete, dictate, tap Generate with AI, check the fields, save. Tap an athlete\'s name in the log to see her whole history.</li>' +
+    '<li><b>Injury log</b> replaces the text message: every taping, assessment or treatment you do goes in there, in the same PIN sign-in. Dictate who and what, tap Generate with AI, check the cards, save. Tap an athlete\'s name in the log to see her whole history.</li>' +
     '<li>Coming off something already covered asks you to confirm because it may leave the event below its minimum. Do it as early as you can.</li>' +
     '<li>Your PIN is personal — it signs your name to every change. Lost it? Lens can issue a new one.</li>' +
     '<li>⚠️ in an event means that detail isn’t confirmed yet. Don’t plan around it.</li>' +
@@ -1008,12 +1008,12 @@ function renderInjury(){
       '<details class="card howto"><summary>How to use the injury log</summary>' +
       '<ol>' +
       '<li><b>Use it instead of texting Lens.</b> Every taping, assessment, treatment or rehab session goes here, the same day.</li>' +
-      '<li><b>New entry:</b> pick the athlete, the date and the type, then tap the microphone key on your keyboard and say what happened, what you found, what you think and what you did. Say <b>"the athlete"</b>, never a name.</li>' +
-      '<li><b>Generate with AI</b> sorts your own words into S / O / A / P. It adds nothing. Read the fields, fix anything, then <b>Save</b>.</li>' +
+      '<li><b>New entry:</b> check the date, tap the microphone (in the app or on your keyboard) and talk: <b>who</b> (the athlete\'s name), what happened, what you found, what you did. One message can cover several athletes and several things — a taping, then a release — in a row.</li>' +
+      '<li><b>Generate with AI</b> splits your words into one entry per athlete and per thing done, picks the type (taping, assessment, treatment, rehab) and fills S / O / A / P with your own words only. Check each card, fix anything, then <b>Save all</b>.</li>' +
       '<li><b>Log:</b> filter by athlete, type, date or a word, or tap an athlete\'s name to see everything about her. Export to Excel any time.</li>' +
       '<li><b>Confidential.</b> Team medical staff only; no screenshots, no sharing. Anything urgent is still a call.</li>' +
       '</ol></details>' +
-      '<iframe id="il-frame" title="Injury log" src="' + esc(INJURY_LOG_URL) + '" scrolling="no"></iframe>';
+      '<iframe id="il-frame" title="Injury log" src="' + esc(INJURY_LOG_URL) + '" scrolling="no" allow="microphone"></iframe>';
     IL_FRAME = $("il-frame");
   }
   ilAuth();
