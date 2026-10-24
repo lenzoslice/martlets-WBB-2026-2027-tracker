@@ -996,9 +996,11 @@ function renderHelp(){
     'transcribed 2026-08-01. Winter 2027 will be added when published.</p>';
 }
 
-var IL_FRAME = null, IL_READY = false;
+var IL_FRAME = null, IL_READY = false, IL_AUTHED = false;
 function ilSend(msg){ if (IL_FRAME && IL_FRAME.contentWindow) { try { IL_FRAME.contentWindow.postMessage(msg, location.origin); } catch(e){} } }
-function ilAuth(){ if (IL_READY && myCode()) ilSend({ type:"il-auth", pass: myCode() }); }
+// Sent once per frame load (and again after a sign-out/sign-in). Re-sending on every
+// 15 s refresh made the embedded page re-boot and wipe the note being typed.
+function ilAuth(){ if (IL_READY && myCode() && !IL_AUTHED) { IL_AUTHED = true; ilSend({ type:"il-auth", pass: myCode() }); } }
 function renderInjury(){
   $("tab-injury").classList.toggle("hidden", !INJURY_LOG_URL);
   if (!INJURY_LOG_URL) return;
@@ -1020,7 +1022,7 @@ function renderInjury(){
 }
 window.addEventListener("message", function(ev){
   if (ev.origin !== location.origin || !ev.data) return;
-  if (ev.data.type === "il-ready") { IL_READY = true; ilAuth(); }
+  if (ev.data.type === "il-ready") { IL_READY = true; IL_AUTHED = false; ilAuth(); }
   else if (ev.data.type === "il-height" && IL_FRAME) IL_FRAME.style.height = Math.max(420, (ev.data.h | 0) + 8) + "px";
 });
 function renderAll(){
@@ -1131,7 +1133,7 @@ document.addEventListener("click", function(e){
   }
 
   if (t.closest && t.closest("#switch")) {
-    localStorage.removeItem("mt_code"); ME = null; S = null; ilSend({ type:"il-signout" }); lock(); return;
+    localStorage.removeItem("mt_code"); ME = null; S = null; ilSend({ type:"il-signout" }); IL_AUTHED = false; lock(); return;
   }
 
 });

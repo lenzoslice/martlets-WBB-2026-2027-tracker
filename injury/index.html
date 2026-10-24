@@ -258,7 +258,7 @@ button.eath { border:none; background:none; font:inherit; font-weight:700; color
             <button type="button" class="btn" id="n-mic" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:18px;height:18px;margin-right:6px;vertical-align:-3px"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span id="n-mic-lbl">Dictate in the app</span></button>
             <span class="muted" id="n-mic-status"></span>
           </div>
-          <p class="hint">Or use the microphone key on your phone keyboard. Say each athlete's <b>name</b>: one message can cover several athletes and several things (a taping, then a release). The AI makes one entry per athlete and per thing done.</p>
+          <p class="hint"><b>Dictate in the app:</b> speak one sentence, pause, the text appears; tap again for the next. Or use the microphone key on your phone keyboard. Say each athlete's <b>name</b>: one message can cover several athletes and several things (a taping, then a release). The AI makes one entry per athlete and per thing done.</p>
         </div>
         <div class="actions">
           <button class="btn primary" id="n-structure">Generate with AI</button>
@@ -354,10 +354,30 @@ function fillAthletes(sel, chosen){
 var TYPES = ["Taping","Assessment","Treatment","Rehab","Other"];
 var REVIEW = null;   // { mode:"ai"|"raw"|"manual"|"edit", why, entries:[...] }
 
+/* Draft autosave: the note being typed survives a reload, a tab eviction on iOS,
+   or a sign-in hand-off. Cleared when the entries are saved. */
+var DRAFT_KEY = "il_draft", draftTimer = null;
+function saveDraft(){
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(function(){
+    try {
+      var text = $("n-text").value;
+      if (!text.trim()) { localStorage.removeItem(DRAFT_KEY); return; }
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ text: text, when: $("n-when").value, lang: $("n-lang").value, t: Date.now() }));
+    } catch(e){}
+  }, 300);
+}
+function loadDraft(){ try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); return d && d.text ? d : null; } catch(e){ return null; } }
+function clearDraft(){ clearTimeout(draftTimer); try { localStorage.removeItem(DRAFT_KEY); } catch(e){} }
+document.addEventListener("input", function(e){ var id = e.target && e.target.id; if (id === "n-text" || id === "n-when" || id === "n-lang") saveDraft(); });
+
 function resetNew(){
-  $("n-when").value = toLocalInput(new Date());
-  $("n-text").value = "";
-  $("n-status").classList.add("hidden");
+  var d = loadDraft();
+  $("n-when").value = (d && d.when) || toLocalInput(new Date());
+  if (d && d.lang) $("n-lang").value = d.lang;
+  $("n-text").value = d ? d.text : "";
+  if (d) setStatus($("n-status"), "", "Draft restored — your unsaved note from " + whenTime(new Date(d.t).toISOString()) + ".");
+  else $("n-status").classList.add("hidden");
   $("step-review").classList.add("hidden");
   $("step-dictate").classList.remove("hidden");
   REVIEW = null;
@@ -462,6 +482,7 @@ function structure(){
           : r.error === "refused" ? "The AI declined to process this note. Your note is in Notes — sort it yourself."
           : r.error === "text_too_long" ? "That note is too long for the AI (6,000 characters max). It's in Notes — split it or sort it yourself."
           : "AI failed (" + (r.error || r._status) + "). Your note is in Notes — sort it yourself, or try again.";
+        if (r.error === "no_api_key") setStatus($("n-status"), "bad", "AI is OFF on the server — Lens must add the key (GO-LIVE.md). Until then nothing is matched or sorted automatically.");
         openReview({ mode:"raw", entries: [{ when: whenV, notes: raw }], why: why });
       }
     })
@@ -501,6 +522,7 @@ function save(){
     if (!errs) {
       renderAll();
       toast(REVIEW.mode === "edit" ? "Entry updated." : saved === 1 ? "Entry saved." : saved + " entries saved.");
+      if (REVIEW.mode !== "edit") clearDraft();
       resetNew(); showTab("log");
     } else {
       REVIEW.entries = es.filter(function(e){ return !e.saved; });
@@ -514,23 +536,47 @@ function save(){
 
 /* ---------- in-app dictation (device speech recognition; the keyboard mic still works too) ---------- */
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null, REC = null;
+var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function micReset(msg){
+  REC = null;
+  $("n-mic").classList.remove("listening"); $("n-mic").setAttribute("aria-pressed", "false");
+  $("n-mic-lbl").textContent = "Dictate in the app";
+  if (msg != null) $("n-mic-status").textContent = msg;
+}
+// Push-to-talk, one sentence at a time: the phone's recognizer ends on silence, the text is
+// appended, and the page is never trapped behind iOS's system "listening" overlay
+// (continuous mode kept that overlay up and made every button untappable).
 function micToggle(){
-  if (REC) { try { REC.stop(); } catch(e){} return; }
-  var r = new SR(), ta = $("n-text"), base = ta.value.replace(/\s*$/, ""), lbl = $("n-mic-lbl"), stt = $("n-mic-status");
-  r.lang = $("n-lang").value; r.continuous = true; r.interimResults = true;
+  if (REC) { var old = REC; REC = null; try { old.abort(); } catch(e){} micReset("Stopped."); return; }
+  var r = new SR(), ta = $("n-text"), base = ta.value.replace(/\s*$/, ""), stt = $("n-mic-status");
+  var fin = "", done = false, safety = null;
+  r.lang = $("n-lang").value; r.continuous = false; r.interimResults = true; r.maxAlternatives = 1;
+  function commit(){
+    if (done) return; done = true;
+    clearTimeout(safety);
+    var text = fin.trim();
+    if (text) { ta.value = (base ? base + " " : "") + text + " "; saveDraft(); }
+    micReset(text ? "Added. Tap again for the next sentence." : "Didn't catch that — tap and try again.");
+  }
   r.onresult = function(ev){
-    var fin = "", interim = "";
+    var interim = ""; fin = "";
     for (var i = 0; i < ev.results.length; i++) { var t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t + " "; else interim += t; }
     ta.value = (base ? base + " " : "") + fin + interim;
+    if (fin && !interim) commit();
   };
   r.onerror = function(ev){
-    stt.textContent = ev.error === "not-allowed" || ev.error === "service-not-allowed" ? "Microphone blocked — allow it for this site, or use the keyboard microphone."
-      : ev.error === "no-speech" ? "Didn't hear anything." : "Dictation stopped (" + ev.error + ").";
+    done = true; clearTimeout(safety);
+    micReset(ev.error === "not-allowed" || ev.error === "service-not-allowed" ? "Microphone blocked — allow it for this site, or use the keyboard microphone."
+      : ev.error === "no-speech" ? "Didn't hear anything — tap and try again." : ev.error === "aborted" ? "Stopped." : "Dictation stopped (" + ev.error + ").");
   };
-  r.onend = function(){ REC = null; $("n-mic").classList.remove("listening"); $("n-mic").setAttribute("aria-pressed", "false"); lbl.textContent = "Dictate in the app"; if (!stt.textContent) stt.textContent = ""; };
-  stt.textContent = "Listening… tap again to stop.";
-  try { r.start(); REC = r; $("n-mic").classList.add("listening"); $("n-mic").setAttribute("aria-pressed", "true"); lbl.textContent = "Stop"; }
-  catch(e){ stt.textContent = "Couldn't start dictation here — use the keyboard microphone."; }
+  r.onend = function(){ commit(); };
+  stt.textContent = IS_IOS ? "Listening… say one sentence, then pause." : "Listening… pause when you're done.";
+  try {
+    r.start(); REC = r;
+    $("n-mic").classList.add("listening"); $("n-mic").setAttribute("aria-pressed", "true"); $("n-mic-lbl").textContent = "Stop";
+    // Belt and braces: never leave the button stuck if onend never fires.
+    safety = setTimeout(function(){ if (REC === r) { try { r.abort(); } catch(e){} commit(); } }, 20000);
+  } catch(e){ micReset("Couldn't start dictation here — use the keyboard microphone."); }
 }
 
 /* ---------- log ---------- */
@@ -712,7 +758,11 @@ function lock(msg){
 if (EMBED) {
   window.addEventListener("message", function(ev){
     if (ev.origin !== location.origin || !ev.data) return;
-    if (ev.data.type === "il-auth") { setPass(String(ev.data.pass || "")); boot(); }
+    if (ev.data.type === "il-auth") {
+      var pass = String(ev.data.pass || "");
+      if (S && ME && pass === myPass()) return;          // already signed in: never re-boot (it wiped the note)
+      setPass(pass); boot();
+    }
     else if (ev.data.type === "il-signout") { setPass(""); S = null; ME = null; lock(); }
   });
   var postH = function(){ try { window.parent.postMessage({ type:"il-height", h: document.documentElement.scrollHeight }, location.origin); } catch(e){} };
@@ -737,9 +787,10 @@ function boot(){
          : "Something went wrong: " + (r && (r.error || r.message) || "no response"));
       return;
     }
+    var first = !S;
     S = r; ME = r.me;
     $("lock").classList.add("hidden"); $("app").classList.remove("hidden");
-    resetNew(); renderAll(); showTab("new");
+    if (first) { resetNew(); renderAll(); showTab("new"); } else renderAll();
     if (!SR) $("n-mic").classList.add("hidden");
   }).catch(function(){ lock("No connection — try again."); });
 }
